@@ -1,0 +1,81 @@
+/* Poore page ki setting */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa; /* Google Drive jaisa halka gray background */
+    color: #3c4043;
+    display: flex;
+    height: 100vh;
+}
+
+/* Left Sidebar */
+.sidebar {
+    width: 250px;
+    background-color: #fff;
+    padding: 20px;
+    border-right: 1px solid #dadce0;
+}
+
+.sidebar h2 {
+    color: #1a73e8;
+    margin-bottom: 30px;
+}
+
+.active-menu {
+    color: #1a73e8; 
+    font-weight: bold;
+    background-color: #e8f0fe;
+    padding: 10px;
+    border-radius: 0 20px 20px 0;
+    margin-left: -20px;
+    padding-left: 20px;
+}
+
+.menu-item {
+    color: #5f6368;
+    padding: 10px;
+    cursor: pointer;
+}
+
+/* Main Area jahan files dikhengi */
+.main-content {
+    flex: 1; /* Yahan correction kar diya hai */
+    padding: 30px;
+}
+
+/* Upload Button */
+.upload-btn {
+    background-color: #1a73e8; /* Google Blue */
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 24px; /* Round button */
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    display: inline-block;
+}
+
+.upload-btn:hover {
+    background-color: #1557b0;
+}
+
+/* Files List */
+.file-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+}
+
+.file-item {
+    background: white;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid #dadce0;
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+}

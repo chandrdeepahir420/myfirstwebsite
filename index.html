@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Telegram Drive</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 🔐 LOGIN SCREEN (Pehle sirf ye dikhegi) -->
+    <div id="loginScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background: #f4f6f9;">
+        <div style="background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; width: 300px;">
+            <h2>TG Drive Login ☁️</h2>
+            <input type="text" id="usernameInput" placeholder="Username" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            <input type="password" id="passwordInput" placeholder="Password" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            <button id="loginBtn" style="width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px;">Login</button>
+        </div>
+    </div>
+
+    <!-- 📂 MAIN DRIVE CONTENT (Pehle ye hidden rahega) -->
+    <div id="driveContent" style="display: none;">
+        <div class="sidebar">
+            <h2>TG Drive ☁️</h2>
+            <p class="active-menu">📂 My Drive</p>
+            <p class="menu-item" id="logoutBtn" style="cursor: pointer; color: #ff4d4d; margin-top: 20px;">🔒 Logout</p>
+        </div>
+
+        <div class="main-content">
+            <h1>My Telegram Cloud Drive</h1>
+            <p>Upload files directly to your Telegram storage.</p>
+
+            <div style="margin: 30px 0;">
+                <input type="file" id="filePicker" style="display: none;">
+                <label for="filePicker" class="upload-btn">+ New Upload</label>
+            </div>
+
+            <h3>Files</h3>
+            <ul class="file-list"></ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
