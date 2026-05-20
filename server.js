@@ -30,12 +30,13 @@ const FolderSchema = new mongoose.Schema({
 });
 const FolderModel = mongoose.model('Folder', FolderSchema);
 
-// 📄 Files Schema Structure
+// 📄 Files Schema Structure (WITH messageId FOR PERMANENT DELETE)
 const FileSchema = new mongoose.Schema({
     name: String,
     size: String,
     url: String,
     folderId: { type: String, default: 'root' },
+    messageId: Number, // ⬅️ Telegram message ID for permanent deletion
     uploadedAt: { type: Date, default: Date.now }
 });
 const FileModel = mongoose.model('File', FileSchema);
@@ -91,7 +92,7 @@ app.post('/verify-otp', async (req, res) => {
     }
 });
 
-// 3. ⬆️ Advanced Simultaneous File Upload Routing System
+// 3. ⬆️ Advanced File Upload Route (Saves messageId)
 app.post('/upload', upload.single('myFile'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ message: 'No file context attached.' });
@@ -108,8 +109,10 @@ app.post('/upload', upload.single('myFile'), async (req, res) => {
         });
 
         if (response.data.ok) {
-            const fileId = response.data.result.document.file_id;
-            const fileInfoResponse = await axios.get(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
+            const fileData = response.data.result.document;
+            const messageId = response.data.result.message_id; // ⬅️ Capturing Message ID
+
+            const fileInfoResponse = await axios.get(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileData.file_id}`);
             const filePath = fileInfoResponse.data.result.file_path;
             const directDownloadUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
 
@@ -117,7 +120,8 @@ app.post('/upload', upload.single('myFile'), async (req, res) => {
                 name: req.file.originalname,
                 size: (req.file.size / (1024 * 1024)).toFixed(2) + ' MB',
                 url: directDownloadUrl,
-                folderId
+                folderId: folderId,
+                messageId: messageId // ⬅️ Saving to MongoDB
             });
 
             res.json({ success: true, message: 'Uploaded successfully!', file: newFile });
@@ -147,12 +151,33 @@ app.get('/files/all', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 6. 🗑️ Delete Specific File Route
+// 6. 🗑️ Delete Specific File Route (PERMANENT DELETE FROM TELEGRAM)
 app.delete('/files/:id', async (req, res) => {
     try {
+        const file = await FileModel.findById(req.params.id);
+        if (!file) return res.status(404).json({ success: false, message: 'File not found' });
+
+        // ⭐ Agar messageId available hai, toh Telegram Server se delete karein
+        if (file.messageId) {
+            try {
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteMessage`, {
+                    chat_id: TELEGRAM_CHAT_ID,
+                    message_id: file.messageId
+                });
+                console.log(`Telegram server se file udha di gayi: ${file.name}`);
+            } catch (tgError) {
+                console.log("Telegram se delete nahi ho payi (shayad pehle hi delete ho chuki thi).");
+            }
+        }
+
+        // ⭐ Ab apni Website ke MongoDB Database se mita dijiye
         await FileModel.findByIdAndDelete(req.params.id);
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ success: false }); }
+        
+    } catch (err) { 
+        console.error('Delete error:', err.message);
+        res.status(500).json({ success: false }); 
+    }
 });
 
 // 7. 📦 Bulk Move File Route
