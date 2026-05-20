@@ -109,12 +109,37 @@ app.post('/upload', upload.single('myFile'), async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Server error.' }); }
 });
 
-// 📂 Get Active Files & Folders (FIXED: $ne stands for "Not Equal To" to support old files)
+// ⭐ FIXED: Get Active Files (Ab bina folder wali purani files bhi dikhengi)
 app.get('/files', async (req, res) => {
-    try { res.json(await FileModel.find({ folderId: req.query.folderId || 'root', isTrashed: { $ne: true } }).sort({ uploadedAt: -1 })); } catch (err) { res.status(500).json([]); }
+    try {
+        const targetFolder = req.query.folderId || 'root';
+        let filter = { isTrashed: { $ne: true } };
+        
+        // Agar folder Root hai, toh 'root' aur 'blank' (purani files) dono ko dhoondo
+        if (targetFolder === 'root') {
+            filter.$or = [{ folderId: 'root' }, { folderId: { $exists: false } }, { folderId: null }];
+        } else {
+            filter.folderId = targetFolder;
+        }
+
+        res.json(await FileModel.find(filter).sort({ uploadedAt: -1 }));
+    } catch (err) { res.status(500).json([]); }
 });
+
+// ⭐ FIXED: Get Active Folders (Same logic for folders if any were missing)
 app.get('/folders', async (req, res) => {
-    try { res.json(await FolderModel.find({ parentId: req.query.parentId || 'root', isTrashed: { $ne: true } }).sort({ createdAt: -1 })); } catch (err) { res.status(500).json([]); }
+    try {
+        const targetParent = req.query.parentId || 'root';
+        let filter = { isTrashed: { $ne: true } };
+
+        if (targetParent === 'root') {
+            filter.$or = [{ parentId: 'root' }, { parentId: { $exists: false } }, { parentId: null }];
+        } else {
+            filter.parentId = targetParent;
+        }
+
+        res.json(await FolderModel.find(filter).sort({ createdAt: -1 }));
+    } catch (err) { res.status(500).json([]); }
 });
 
 // 🔍 Search Active Files
