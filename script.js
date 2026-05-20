@@ -1,15 +1,15 @@
 let isLoggedIn = false;
 let currentFolderId = 'root';
-let folderStack = [];
+let folderStack = []; 
 let isGridView = true;
-let ctxTarget = null;
-let allFiles = [];
+let ctxTarget = null; 
+let allFiles = []; 
 let selectedIds = new Set();
 let isDark = true;
 let inactiveTimer = null;
 let toastCountdown = null;
-const INACTIVE_LIMIT = 30 * 60 * 1000; 
-const WARN_BEFORE = 60 * 1000; 
+const INACTIVE_LIMIT = 30 * 60 * 1000; // 30 mins
+const WARN_BEFORE = 60 * 1000; // 60 seconds warning
 
 window.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('td_theme') || 'dark';
@@ -25,7 +25,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   setupOTPBoxes();
 
-  // Smart forms UX improvements
+  // Next input logic via Enter key
   document.getElementById('usernameInput').addEventListener('keydown', e => { 
       if (e.key === 'Enter') { e.preventDefault(); document.getElementById('passwordInput').focus(); } 
   });
@@ -52,7 +52,6 @@ function showDrive() {
   loadCurrentFolder();
   startInactivityTimer();
 
-  // Activity listeners
   ['mousemove', 'touchstart', 'keydown', 'click'].forEach(evt => {
       document.addEventListener(evt, resetInactivity);
   });
@@ -76,7 +75,14 @@ function applyTheme(t) {
 
 function togglePass() {
   const inp = document.getElementById('passwordInput');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
+  const icon = document.getElementById('eyeIcon');
+  if(inp.type === 'password') {
+      inp.type = 'text';
+      icon.className = 'fa-solid fa-eye-slash';
+  } else {
+      inp.type = 'password';
+      icon.className = 'fa-solid fa-eye';
+  }
 }
 
 function setupOTPBoxes() {
@@ -100,10 +106,12 @@ function getOTPValue() {
 async function requestOTP() {
   const username = document.getElementById('usernameInput').value.trim();
   const password = document.getElementById('passwordInput').value.trim();
+  const errEl = document.getElementById('loginError');
   if (!username || !password) return;
 
   const btn = document.getElementById('loginBtn');
   btn.innerText = 'Sending OTP...';
+  errEl.textContent = '';
 
   try {
     const res = await fetch('/request-otp', {
@@ -116,13 +124,14 @@ async function requestOTP() {
       document.getElementById('step1').style.display = 'none';
       document.getElementById('step2').style.display = 'block';
       document.querySelector('.otp-box').focus();
-    } else { alert(data.message || 'Verification Error'); }
-  } catch { alert('Server network unreachable.'); }
+    } else { errEl.textContent = data.message || 'Verification Error'; shakeCard(); }
+  } catch { errEl.textContent = 'Server network unreachable.'; shakeCard(); }
   finally { btn.innerText = 'Continue'; }
 }
 
 async function verifyOTP() {
   const code = getOTPValue();
+  const errEl = document.getElementById('otpError');
   if (code.length !== 6) return;
 
   try {
@@ -136,8 +145,19 @@ async function verifyOTP() {
       sessionStorage.setItem('td_auth', 'true');
       isLoggedIn = true;
       showDrive();
-    } else { alert(data.message || 'Invalid verification token.'); }
-  } catch { alert('Server authentication failed.'); }
+    } else { errEl.textContent = data.message || 'Invalid OTP token.'; shakeCard(); }
+  } catch { errEl.textContent = 'Server authentication failed.'; }
+}
+
+function backToStep1() {
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+}
+
+function shakeCard() {
+  const card = document.querySelector('.login-card');
+  card.classList.add('shake');
+  setTimeout(() => card.classList.remove('shake'), 400);
 }
 
 function logout() {
@@ -150,9 +170,13 @@ function startInactivityTimer() {
   inactiveTimer = setTimeout(() => {
     let secs = 60;
     const toast = document.getElementById('inactiveToast');
+    const timerSpan = document.getElementById('toastTimer');
     toast.style.display = 'flex';
+    timerSpan.textContent = secs;
+    
     toastCountdown = setInterval(() => {
       secs--;
+      timerSpan.textContent = secs;
       if (secs <= 0) { logout(); }
     }, 1000);
   }, INACTIVE_LIMIT - WARN_BEFORE);
@@ -166,11 +190,10 @@ function resetInactivity() {
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-}
-
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
+  const sb = document.getElementById('sidebar');
+  const sbo = document.getElementById('sidebarOverlay');
+  sb.classList.toggle('open');
+  sbo.classList.toggle('show');
 }
 
 function navigateTo(folderId, folderName) {
@@ -184,6 +207,8 @@ function navigateTo(folderId, folderName) {
   }
   updateBreadcrumb(); 
   loadCurrentFolder();
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
 }
 
 function updateBreadcrumb() {
@@ -233,33 +258,56 @@ function addSectionLabel(parent, text) {
 
 function makeFolderCard(folder) {
   const div = document.createElement('div');
-  div.className = 'folder-card'; div.dataset.id = folder._id; div.dataset.type = 'folder';
+  div.className = `folder-card ${selectedIds.has(folder._id) ? 'selected' : ''}`; 
+  div.dataset.id = folder._id; div.dataset.type = 'folder';
   div.innerHTML = `
     <div class="select-check">✓</div>
-    <div class="folder-name">📁 ${folder.name}</div>
-    <button class="folder-delete" onclick="deleteFolder(event,'${folder._id}')">✕</button>`;
+    <div class="folder-name"><i class="fa-solid fa-folder text-amber-500 mr-1.5"></i> ${folder.name}</div>
+    <button class="folder-delete" onclick="deleteFolder(event,'${folder._id}')"><i class="fa-solid fa-trash-can"></i></button>`;
     
   div.addEventListener('click', e => {
-    if (e.target.className === 'folder-delete') return;
+    if (e.target.closest('.folder-delete')) return;
     if (selectedIds.size > 0) { toggleSelect(folder._id, div); return; }
     navigateTo(folder._id, folder.name);
   });
   return div;
 }
 
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = {
+    pdf: 'fa-file-pdf text-red-500', jpg: 'fa-file-image text-green-500', jpeg: 'fa-file-image text-green-500', png: 'fa-file-image text-green-500', gif: 'fa-file-image text-emerald-500', webp: 'fa-file-image text-emerald-500',
+    mp4: 'fa-file-video text-blue-500', mov: 'fa-file-video text-blue-500', avi: 'fa-file-video text-blue-500', mkv: 'fa-file-video text-blue-500',
+    mp3: 'fa-file-audio text-purple-500', wav: 'fa-file-audio text-purple-500', flac: 'fa-file-audio text-purple-500',
+    zip: 'fa-file-zipper text-yellow-600', rar: 'fa-file-zipper text-yellow-600', '7z': 'fa-file-zipper text-yellow-600',
+    doc: 'fa-file-word text-blue-600', docx: 'fa-file-word text-blue-600', txt: 'fa-file-lines text-slate-400',
+    xls: 'fa-file-excel text-emerald-600', xlsx: 'fa-file-excel text-emerald-600',
+    apk: 'fa-android text-lime-500', exe: 'fa-laptop-code text-cyan-500',
+  };
+  return map[ext] || 'fa-file text-slate-400';
+}
+
 function makeFileCard(file) {
   const div = document.createElement('div');
-  div.className = 'file-card'; div.dataset.id = file._id; div.dataset.type = 'file';
+  div.className = `file-card ${selectedIds.has(file._id) ? 'selected' : ''}`; 
+  div.dataset.id = file._id; div.dataset.type = 'file';
   div.innerHTML = `
     <div class="select-check">✓</div>
-    <div class="file-name">📄 ${file.name}</div>
-    <div class="file-size">${file.size}</div>
+    <div class="file-icon"><i class="fa-solid ${getFileIcon(file.name)}"></i></div>
+    <div>
+      <div class="file-name" title="${file.name}">${file.name}</div>
+      <div class="file-size">${file.size}</div>
+    </div>
     <div class="file-actions">
-      <a class="btn-dl" href="${file.url}" target="_blank">Download</a>
-      <button class="btn-del" onclick="deleteFile(event,'${file._id}')">Delete</button>
+      <a class="btn-dl" href="${file.url}" target="_blank"><i class="fa-solid fa-download"></i></a>
+      <button class="btn-del" onclick="deleteFile(event,'${file._id}')"><i class="fa-solid fa-trash"></i></button>
     </div>`;
 
-  div.addEventListener('click', () => toggleSelect(file._id, div));
+  div.addEventListener('click', (e) => {
+      if(e.target.closest('.file-actions')) return;
+      toggleSelect(file._id, div);
+  });
+  
   div.addEventListener('contextmenu', e => {
       e.preventDefault(); ctxTarget = file;
       const menu = document.getElementById('contextMenu');
@@ -293,7 +341,7 @@ function selectAll() {
   updateActionBar();
 }
 
-// ⬆️ SIMULTANEOUS MULTI-FILE UPLOAD ENGINE WITH PROGRESS TRACKING
+// ⬆️ PARALLEL ACCURATE MULTI-UPLOAD SPEED LOGIC ENGINE
 document.getElementById('filePicker').addEventListener('change', async e => {
   const files = Array.from(e.target.files);
   if (!files.length) return;
@@ -336,7 +384,7 @@ document.getElementById('filePicker').addEventListener('change', async e => {
         });
 
         xhr.addEventListener('load', () => { slots[i].speed.textContent = '✓ Done'; resolve(); });
-        xhr. his.addEventListener('error', () => { slots[i].speed.textContent = '✗ Failed'; resolve(); });
+        xhr.addEventListener('error', () => { slots[i].speed.textContent = '✗ Failed'; resolve(); });
         xhr.open('POST', '/upload'); xhr.send(formData);
       });
   }));
@@ -345,28 +393,26 @@ document.getElementById('filePicker').addEventListener('change', async e => {
 });
 
 async function deleteFile(e, id) {
-  e.stopPropagation();
-  if (confirm('File delete kar dein?')) {
-    await fetch(`/files/${id}`, { method: 'DELETE' }); loadCurrentFolder();
-  }
+  if(e) e.stopPropagation();
+  if (!confirm('File delete kar dein?')) return;
+  await fetch(`/files/${id}`, { method: 'DELETE' }); loadCurrentFolder();
 }
 
 async function createFolder() {
   const name = prompt('Folder name:');
-  if (!name) return;
+  if (!name || !name.trim()) return;
   await fetch('/folders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, parentId: currentFolderId })
+      body: JSON.stringify({ name: name.trim(), parentId: currentFolderId })
   });
   loadCurrentFolder();
 }
 
 async function deleteFolder(e, id) {
-  e.stopPropagation();
-  if (confirm('Folder delete kar dein? Files bahar aa jayengi.')) {
-    await fetch(`/folders/${id}`, { method: 'DELETE' }); loadCurrentFolder();
-  }
+  if(e) e.stopPropagation();
+  if (!confirm('Folder delete kar dein? Files bahar aa jayengi.')) return;
+  await fetch(`/folders/${id}`, { method: 'DELETE' }); loadCurrentFolder();
 }
 
 function ctxDownload() { if(ctxTarget) window.open(ctxTarget.url, '_blank'); }
@@ -388,6 +434,7 @@ async function bulkDelete() {
   if (!confirm('Selected items delete kar dein?')) return;
   for (const id of selectedIds) {
     const el = document.querySelector(`[data-id="${id}"]`);
+    if(!el) continue;
     const route = el.dataset.type === 'folder' ? `/folders/${id}` : `/files/${id}`;
     await fetch(route, { method: 'DELETE' });
   }
@@ -397,14 +444,27 @@ async function bulkDelete() {
 async function bulkMove() {
   openFolderPicker(async folderId => {
     for (const id of selectedIds) {
-      await fetch(`/files/${id}/move`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folderId })
-      });
+      const el = document.querySelector(`[data-id="${id}"]`);
+      if(el && el.dataset.type === 'file') {
+        await fetch(`/files/${id}/move`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folderId })
+        });
+      }
     }
     clearSelection(); loadCurrentFolder();
   });
+}
+
+async function bulkDownload() {
+  for (const id of selectedIds) {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el && el.dataset.type === 'file') {
+      const link = el.querySelector('.btn-dl');
+      if (link) window.open(link.href, '_blank');
+    }
+  }
 }
 
 async function openFolderPicker(callback) {
@@ -429,8 +489,10 @@ function hideSearch() { document.getElementById('searchRow').style.display = 'no
 
 async function searchFiles() {
   const q = document.getElementById('searchInput').value.toLowerCase().trim();
-  if(!q) return;
+  if(!q) { loadCurrentFolder(); return; }
   const res = await fetch('/files/all');
   const files = await res.json();
   renderItems([], files.filter(f => f.name.toLowerCase().includes(q)));
 }
+
+function closeMoveModal(e) { if (e.target === document.getElementById('moveModal')) document.getElementById('moveModal').style.display = 'none'; }
