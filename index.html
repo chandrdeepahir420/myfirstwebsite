@@ -18,68 +18,33 @@
 
 <div id="loadingScreen" class="loading-screen">
   <div class="loader-content">
-    <div class="loader-icon">
-      <div class="loader-ring"></div>
-      <i class="fa-solid fa-cloud text-3xl"></i>
-    </div>
+    <div class="loader-ring"></div>
+    <i class="fa-solid fa-cloud text-3xl text-blue-500"></i>
     <p>TeleDrive</p>
   </div>
 </div>
 
 <div id="loginScreen" class="login-screen" style="display:none">
-  <div class="login-bg">
-    <div class="blob blob1"></div>
-    <div class="blob blob2"></div>
-    <div class="blob blob3"></div>
-  </div>
+  <div class="login-bg"><div class="blob blob1"></div><div class="blob blob2"></div><div class="blob blob3"></div></div>
   <div class="login-card">
-    <div class="theme-toggle-login" onclick="toggleTheme()">
-      <span id="themeIconLogin">🌙</span>
-    </div>
-    <div class="login-logo">
-      <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
-    </div>
-    <h1>TeleDrive</h1>
-    <p class="login-sub">Your personal cloud, powered by Telegram</p>
-
+    <div class="theme-toggle-login" onclick="toggleTheme()"><span id="themeIconLogin">🌙</span></div>
+    <div class="login-logo"><i class="fa-solid fa-cloud-arrow-up text-xl"></i></div>
+    <h1>TeleDrive</h1><p class="login-sub">Your personal cloud</p>
     <div id="step1">
-      <div class="input-group">
-        <label>Username</label>
-        <input type="text" id="usernameInput" placeholder="Enter username" autocomplete="username" autocapitalize="none">
+      <div class="input-group"><label>Username</label><input type="text" id="usernameInput" placeholder="Enter username" autocomplete="off"></div>
+      <div class="input-group"><label>Password</label>
+        <div class="pass-wrap"><input type="password" id="passwordInput" placeholder="Enter password"><button class="eye-btn" onclick="togglePass()"><i class="fa-solid fa-eye" id="eyeIcon"></i></button></div>
       </div>
-      <div class="input-group">
-        <label>Password</label>
-        <div class="pass-wrap">
-          <input type="password" id="passwordInput" placeholder="Enter password" autocomplete="current-password">
-          <button class="eye-btn" onclick="togglePass()" type="button" tabindex="-1">
-            <i class="fa-solid fa-eye" id="eyeIcon"></i>
-          </button>
-        </div>
-      </div>
-      <button class="btn-primary" id="loginBtn" onclick="requestOTP()">
-        <span>Continue</span>
-        <i class="fa-solid fa-arrow-right"></i>
-      </button>
+      <button class="btn-primary" id="loginBtn" onclick="requestOTP()"><span>Continue</span><i class="fa-solid fa-arrow-right"></i></button>
       <div class="login-error" id="loginError"></div>
     </div>
-
     <div id="step2" style="display:none">
-      <div class="otp-info">
-        <i class="fa-solid fa-paper-plane"></i>
-        <span>OTP aapke Telegram par bheja gaya</span>
-      </div>
+      <div class="otp-info"><i class="fa-solid fa-paper-plane"></i><span>OTP aapke Telegram par bheja gaya</span></div>
       <div class="otp-inputs">
-        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-box" type="text" maxlength="1" inputmode="numeric"><input class="otp-box" type="text" maxlength="1" inputmode="numeric"><input class="otp-box" type="text" maxlength="1" inputmode="numeric">
+        <input class="otp-box" type="text" maxlength="1" inputmode="numeric"><input class="otp-box" type="text" maxlength="1" inputmode="numeric"><input class="otp-box" type="text" maxlength="1" inputmode="numeric">
       </div>
-      <button class="btn-primary" id="verifyBtn" onclick="verifyOTP()">
-        <span>Verify & Login</span>
-        <i class="fa-solid fa-check"></i>
-      </button>
+      <button class="btn-primary" id="verifyBtn" onclick="verifyOTP()"><span>Verify & Login</span><i class="fa-solid fa-check"></i></button>
       <button class="btn-ghost" onclick="backToStep1()">← Back</button>
       <div class="login-error" id="otpError"></div>
     </div>
@@ -88,30 +53,15 @@
 
 <div id="driveContent" style="display:none">
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <i class="fa-solid fa-cloud text-blue-500"></i>
-      <span>TeleDrive</span>
-    </div>
-
+    <div class="sidebar-logo"><i class="fa-solid fa-cloud text-blue-500"></i><span>TeleDrive</span></div>
     <nav class="sidebar-nav">
-      <a class="nav-item active" id="navDrive" onclick="navigateTo('root')">
-        <i class="fa-solid fa-house"></i> My Drive
-      </a>
-      <a class="nav-item" onclick="showSearch()">
-        <i class="fa-solid fa-magnifying-glass"></i> Search
-      </a>
+      <a class="nav-item active" id="navDrive" onclick="switchView('drive')"><i class="fa-solid fa-house"></i> My Drive</a>
+      <a class="nav-item" onclick="showSearch()"><i class="fa-solid fa-magnifying-glass"></i> Search</a>
+      <a class="nav-item text-red-400 hover:text-red-500" id="navTrash" onclick="switchView('trash')"><i class="fa-solid fa-trash-can"></i> Trash Bin</a>
     </nav>
-
     <div class="sidebar-bottom">
-      <div class="storage-info">
-        <i class="fa-solid fa-server"></i> Unlimited Storage
-      </div>
-      <button class="theme-toggle-btn" onclick="toggleTheme()">
-        <span id="themeIconSidebar">🌙</span> <span id="themeLabel">Dark Mode</span>
-      </button>
-      <button class="btn-logout" onclick="logout()">
-        <i class="fa-solid fa-right-from-bracket"></i> Logout
-      </button>
+      <button class="theme-toggle-btn" onclick="toggleTheme()"><span id="themeIconSidebar">🌙</span> <span id="themeLabel">Dark Mode</span></button>
+      <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
     </div>
   </aside>
 
@@ -120,95 +70,78 @@
   <main class="main-content">
     <div class="topbar">
       <div class="topbar-left">
-        <button class="hamburger" onclick="toggleSidebar()">
-          <i class="fa-solid fa-bars text-xl"></i>
-        </button>
-        <div class="breadcrumb" id="breadcrumb">
-          <span onclick="navigateTo('root')">My Drive</span>
-        </div>
+        <button class="hamburger" onclick="toggleSidebar()"><i class="fa-solid fa-bars text-xl"></i></button>
+        <div class="breadcrumb" id="breadcrumb"><span onclick="navigateTo('root')">My Drive</span></div>
       </div>
       <div class="topbar-actions">
-        <button class="icon-btn" onclick="showSearch()" id="searchToggle" title="Search">
-          <i class="fa-solid fa-magnifying-glass"></i>
-        </button>
-        <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
-        <button class="icon-btn" onclick="toggleView()" id="viewToggle" title="Toggle view">
-          <i class="fa-solid fa-grid-2"></i>
-        </button>
+        <button class="icon-btn" onclick="toggleView()" id="viewToggle" title="Toggle view"><i class="fa-solid fa-grid-2"></i></button>
       </div>
     </div>
 
     <div class="search-row" id="searchRow" style="display:none">
-      <div class="search-box">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="searchInput" placeholder="Search files..." oninput="searchFiles()">
-        <button onclick="hideSearch()">✕</button>
-      </div>
+      <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="searchInput" placeholder="Search files..." oninput="searchFiles()"><button onclick="hideSearch()">✕</button></div>
     </div>
-
+    
     <div class="action-bar" id="actionBar" style="display:none">
-      <div class="action-bar-left">
-        <button onclick="clearSelection()" class="ab-btn">✕</button>
-        <span id="selectedCount">0 selected</span>
-      </div>
-      <div class="action-bar-right">
-        <button class="ab-btn" onclick="bulkDownload()" title="Download"><i class="fa-solid fa-download"></i></button>
-        <button class="ab-btn" onclick="bulkMove()" title="Move"><i class="fa-solid fa-folder-tree"></i></button>
-        <button class="ab-btn danger" onclick="bulkDelete()" title="Delete"><i class="fa-solid fa-trash"></i></button>
-        <button class="ab-btn" onclick="selectAll()">All</button>
-      </div>
+      <div class="action-bar-left"><button onclick="clearSelection()" class="ab-btn">✕</button><span id="selectedCount">0 selected</span></div>
+      <div class="action-bar-right" id="actionBarTools">
+        </div>
     </div>
 
-    <div class="desktop-toolbar">
-      <button class="btn-new-folder" onclick="createFolder()">
-        <i class="fa-solid fa-folder-plus text-amber-500"></i> New Folder
-      </button>
-      <label class="btn-upload" for="filePicker">
-        <i class="fa-solid fa-cloud-arrow-up"></i> Upload Files
-      </label>
+    <div class="desktop-toolbar" id="mainToolbar">
+      <button class="btn-new-folder" onclick="createFolder()"><i class="fa-solid fa-folder-plus text-amber-500"></i> New Folder</button>
+      <label class="btn-upload" for="filePicker"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Files</label>
     </div>
-
     <input type="file" id="filePicker" style="display:none" multiple>
 
     <div class="upload-queue" id="uploadQueue" style="display:none"></div>
-
     <div class="file-area">
       <div class="empty-state" id="emptyState" style="display:none">
-        <i class="fa-solid fa-folder-open text-5xl"></i>
-        <p>No files here yet</p>
-        <span>Upload files or create a folder</span>
+        <i class="fa-solid fa-folder-open text-5xl" id="emptyIcon"></i>
+        <p id="emptyTitle">No files here</p><span id="emptyDesc">Upload files or create a folder</span>
       </div>
       <div class="file-grid" id="fileList"></div>
     </div>
   </main>
 </div>
 
-<div class="fab-group">
-  <button class="fab fab-folder" onclick="createFolder()"><i class="fa-solid fa-folder-plus"></i></button>
-  <label class="fab fab-upload" for="filePicker"><i class="fa-solid fa-plus"></i></label>
-</div>
+<div class="context-menu" id="contextMenu"></div>
 
-<div class="context-menu" id="contextMenu">
-  <button onclick="ctxDownload()"><i class="fa-solid fa-download"></i> Download</button>
-  <button onclick="ctxMove()"><i class="fa-solid fa-arrows-turn-to-dots"></i> Move to Folder</button>
-  <button onclick="ctxSelect()"><i class="fa-solid fa-square-check"></i> Select</button>
-  <hr>
-  <button class="danger" onclick="ctxDelete()"><i class="fa-solid fa-trash"></i> Delete</button>
-</div>
-
-<div class="modal-overlay" id="moveModal" style="display:none" onclick="closeMoveModal(event)">
-  <div class="modal">
-    <h3>Move Selected Items</h3>
-    <div id="folderPickerList"></div>
-    <div class="modal-actions">
-      <button class="btn-ghost" onclick="document.getElementById('moveModal').style.display='none'">Cancel</button>
+<div class="modal-overlay" id="confirmModal" style="display:none; z-index: 3000;">
+  <div class="modal text-center">
+    <div class="modal-icon-box"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3 id="confirmTitle" style="margin-bottom: 8px;">Are you sure?</h3>
+    <p id="confirmDesc" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">This action cannot be undone.</p>
+    <div style="display:flex; gap:12px;">
+      <button class="btn-ghost" style="flex:1; margin:0;" onclick="document.getElementById('confirmModal').style.display='none'">Cancel</button>
+      <button class="btn-primary" style="flex:1; margin:0; background: var(--danger);" id="confirmYesBtn">Yes, do it</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="inactiveToast" style="display:none">
-  <i class="fa-solid fa-triangle-exclamation animate-pulse"></i> 
-  Logging out in <span id="toastTimer">60</span>s due to inactivity. Move mouse to cancel!
+<div class="modal-overlay" id="renameModal" style="display:none;">
+    <div class="modal">
+      <h3>Rename Item</h3>
+      <input type="text" id="renameInput" class="rename-input" placeholder="New name...">
+      <div class="modal-actions">
+        <button class="btn-ghost" style="margin-top:0;" onclick="document.getElementById('renameModal').style.display='none'">Cancel</button>
+        <button class="btn-primary" style="width: auto; margin-top:0; padding: 10px 20px;" onclick="submitRename()">Save Name</button>
+      </div>
+    </div>
+</div>
+
+<div class="modal-overlay preview-overlay" id="previewModal" style="display:none;">
+    <button class="preview-close" onclick="document.getElementById('previewModal').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+    <div class="preview-content-box" id="previewContent"></div>
+    <div class="preview-title" id="previewTitle">filename.png</div>
+</div>
+
+<div class="modal-overlay" id="moveModal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <h3>Move Selected Items</h3>
+    <div id="folderPickerList" style="max-height: 250px; overflow-y: auto; margin-bottom: 16px;"></div>
+    <div class="modal-actions"><button class="btn-ghost" style="margin:0;" onclick="document.getElementById('moveModal').style.display='none'">Cancel</button></div>
+  </div>
 </div>
 
 <script src="script.js"></script>
