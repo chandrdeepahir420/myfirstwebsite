@@ -9,20 +9,18 @@ const PORT = process.env.PORT || 3000;
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// ================== ⚙️ CONFIGURATION ==================
-const TELEGRAM_BOT_TOKEN = 'YAHAN_APNI_BOT_TOKEN_PASTE_KAREIN';
-const TELEGRAM_CHAT_ID = 'YAHAN_APNI_CHAT_ID_PASTE_KAREIN';
+// ================== ⚙️ RENDER SECURE CORE ENVIRONMENT VARIABLES ==================
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const APP_USERNAME = process.env.APP_USERNAME;
+const APP_PASSWORD = process.env.APP_PASSWORD;
+const MONGO_URI = process.env.MONGO_URI;
+// =================================================================================
 
-const APP_USERNAME = 'admin'; // Fixed login username
-const APP_PASSWORD = 'password123'; // Fixed login password
-
-let currentGeneratedOTP = null; 
-// ======================================================
-
-// 🌐 Connect to MongoDB Cloud Database securely via Render Env
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB Database se connection safal raha! 🌲"))
-    .catch(err => console.error("Database connection fail:", err));
+// 🌐 Connect to MongoDB Cloud Database securely
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('✅ MongoDB Engine connected successfully!'))
+    .catch(err => console.error('❌ MongoDB Engine connection failed:', err));
 
 // 📁 Folders Schema Structure
 const FolderSchema = new mongoose.Schema({
@@ -37,137 +35,161 @@ const FileSchema = new mongoose.Schema({
     name: String,
     size: String,
     url: String,
-    folderId: { type: String, default: 'root' }, 
+    folderId: { type: String, default: 'root' },
     uploadedAt: { type: Date, default: Date.now }
 });
 const FileModel = mongoose.model('File', FileSchema);
 
+// 🔐 Temporary Verification Tokens Lock Schema 
+const OTPSchema = new mongoose.Schema({
+    code: String,
+    used: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now, expires: 300 } // Auto-destruct system logs after 5 minutes
+});
+const OTPModel = mongoose.model('OTP', OTPSchema);
+
 app.use(express.json());
 app.use(express.static('.'));
 
-// 🔑 STEP 1: Request OTP Route
+// 1. 🔑 STEP 1: Request OTP Route
 app.post('/request-otp', async (req, res) => {
     const { username, password } = req.body;
-    if (username === APP_USERNAME && password === APP_PASSWORD) {
-        currentGeneratedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        try {
-            const msg = `🔒 TeleDrive Login Request\n\nYour 6-Digit Verification OTP Code is: ${currentGeneratedOTP}\n\nValid for safe session initialization rules.`;
-            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                chat_id: TELEGRAM_CHAT_ID,
-                text: msg
-            });
-            res.json({ success: true, message: "OTP sent to Telegram!" });
-        } catch (err) {
-            res.status(500).json({ success: false, message: "Telegram OTP delivery failed." });
-        }
-    } else {
-        res.status(401).json({ success: false, message: "Galat Username ya Password!" });
+    if (username !== APP_USERNAME || password !== APP_PASSWORD) {
+        return res.status(401).json({ success: false, message: 'Galat credentials!' });
+    }
+    try {
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        await OTPModel.deleteMany({}); // Flush outdated active tokens
+        await OTPModel.create({ code });
+
+        const msg = `🔐 *TeleDrive Security verification*\n\nYour 6-Digit Authentication code is: *${code}*\n\nToken code expires automatically in 5 minutes rules layer.`;
+        await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            chat_id: TELEGRAM_CHAT_ID,
+            text: msg,
+            parse_mode: 'Markdown'
+        });
+
+        res.json({ success: true, message: 'OTP sent to Telegram!' });
+    } catch (err) {
+        console.error('OTP delivery layer crash:', err.message);
+        res.status(500).json({ success: false, message: 'OTP token delivery dropped.' });
     }
 });
 
-// 🔑 STEP 2: Verify OTP Route
-app.post('/verify-otp', (req, res) => {
+// 2. 🔑 STEP 2: Verify OTP Route
+app.post('/verify-otp', async (req, res) => {
     const { code } = req.body;
-    if (currentGeneratedOTP && code === currentGeneratedOTP) {
-        currentGeneratedOTP = null; 
-        res.json({ success: true, message: "Authenticated successfully!" });
-    } else {
-        res.status(400).json({ success: false, message: "Galat OTP code entered!" });
+    try {
+        const otp = await OTPModel.findOne({ code, used: false });
+        if (!otp) return res.status(401).json({ success: false, message: 'Galat ya expired OTP!' });
+        
+        otp.used = true;
+        await otp.save();
+        res.json({ success: true, message: 'Login successful!' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Authentication verification fault.' });
     }
 });
 
-// 📂 Create Folder Route
-app.post('/folders', async (req, res) => {
-    try {
-        const { name, parentId } = req.body;
-        const newFolder = new FolderModel({ name, parentId });
-        await newFolder.save();
-        res.json(newFolder);
-    } catch { res.status(500).json({ error: "Folder creation error" }); }
-});
-
-// 📂 Get Folders Route
-app.get('/folders', async (req, res) => {
-    try {
-        const parentId = req.query.parentId || 'root';
-        const folders = await FolderModel.find({ parentId }).sort({ createdAt: 1 });
-        res.json(folders);
-    } catch { res.status(500).json([]); }
-});
-
-// 🗑️ Delete Folder Route
-app.delete('/folders/:id', async (req, res) => {
-    try {
-        const folderId = req.params.id;
-        await FolderModel.findByIdAndDelete(folderId);
-        await FileModel.updateMany({ folderId }, { folderId: 'root' });
-        res.json({ message: "Folder deleted, files moved to root." });
-    } catch { res.status(500).json({ error: "Delete process dropped." }); }
-});
-
-// ⬆️ File Upload Route
+// 3. ⬆️ Advanced Simultaneous File Upload Routing System
 app.post('/upload', upload.single('myFile'), async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ message: "No file attached." });
+        if (!req.file) return res.status(400).json({ message: 'No file context attached.' });
         const folderId = req.body.folderId || 'root';
 
         const form = new FormData();
         form.append('chat_id', TELEGRAM_CHAT_ID);
         form.append('document', req.file.buffer, { filename: req.file.originalname });
 
-        const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, form, { headers: form.getHeaders() });
+        const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, form, {
+            headers: form.getHeaders(),
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+        });
 
         if (response.data.ok) {
-            const fileData = response.data.result.document;
-            const fileInfo = await axios.get(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileData.file_id}`);
-            const directDownloadUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileInfo.data.result.file_path}`;
+            const fileId = response.data.result.document.file_id;
+            const fileInfoResponse = await axios.get(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
+            const filePath = fileInfoResponse.data.result.file_path;
+            const directDownloadUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
 
-            const newFile = new FileModel({
+            const newFile = await FileModel.create({
                 name: req.file.originalname,
-                size: (req.file.size / (1024 * 1024)).toFixed(2) + " MB",
+                size: (req.file.size / (1024 * 1024)).toFixed(2) + ' MB',
                 url: directDownloadUrl,
-                folderId: folderId
+                folderId
             });
-            await newFile.save();
-            res.json({ message: "Uploaded successfully!" });
-        } else { res.status(500).json({ message: "Telegram system block." }); }
-    } catch (err) { res.status(500).json({ message: "Internal server layer crash." }); }
+
+            res.json({ success: true, message: 'Uploaded successfully!', file: newFile });
+        } else {
+            res.status(500).json({ message: 'Telegram cloud refused storage pipeline.' });
+        }
+    } catch (error) {
+        console.error('Upload core block error:', error.message);
+        res.status(500).json({ message: 'Internal servers mapping error.' });
+    }
 });
 
-// 📂 Get Current Folder Files Route
+// 4. 📂 Get Current Directory Files Route
 app.get('/files', async (req, res) => {
     try {
         const folderId = req.query.folderId || 'root';
         const files = await FileModel.find({ folderId }).sort({ uploadedAt: -1 });
         res.json(files);
-    } catch { res.status(500).json([]); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 🔍 Global Search Query Support Route
+// 5. 🔍 Global Search Support Route
 app.get('/files/all', async (req, res) => {
     try {
-        const files = await FileModel.find({});
+        const files = await FileModel.find({}).sort({ uploadedAt: -1 });
         res.json(files);
-    } catch { res.status(500).json([]); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 📦 Bulk Move File Route
-app.patch('/files/:id/move', async (req, res) => {
-    try {
-        await FileModel.findByIdAndUpdate(req.params.id, { folderId: req.body.folderId });
-        res.json({ success: true });
-    } catch { res.status(500).json({ error: "Move context dropped." }); }
-});
-
-// 🗑️ Delete Specific File Route
+// 6. 🗑️ Delete Specific File Route
 app.delete('/files/:id', async (req, res) => {
     try {
         await FileModel.findByIdAndDelete(req.params.id);
         res.json({ success: true });
-    } catch { res.status(500).json({ error: "Delete execution failed." }); }
+    } catch (err) { res.status(500).json({ success: false }); }
+});
+
+// 7. 📦 Bulk Move File Route
+app.patch('/files/:id/move', async (req, res) => {
+    try {
+        await FileModel.findByIdAndUpdate(req.params.id, { folderId: req.body.folderId });
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ success: false }); }
+});
+
+// 8. 📂 Get Folders Route
+app.get('/folders', async (req, res) => {
+    try {
+        const parentId = req.query.parentId || 'root';
+        const folders = await FolderModel.find({ parentId }).sort({ createdAt: -1 });
+        res.json(folders);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 9. 📂 Create Folder Route
+app.post('/folders', async (req, res) => {
+    try {
+        const { name, parentId } = req.body;
+        const folder = await FolderModel.create({ name, parentId: parentId || 'root' });
+        res.json({ success: true, folder });
+    } catch (err) { res.status(500).json({ success: false }); }
+});
+
+// 10. 🗑️ Delete Folder Route
+app.delete('/folders/:id', async (req, res) => {
+    try {
+        await FolderModel.findByIdAndDelete(req.params.id);
+        await FileModel.updateMany({ folderId: req.params.id }, { folderId: 'root' });
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ success: false }); }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server executing securely on port ${PORT}`);
+    console.log(`🚀 Secure Operations Core listening at port ${PORT}`);
 });
