@@ -37,7 +37,7 @@ const FileSchema = new mongoose.Schema({
     size: String,
     url: String,
     folderId: { type: String, default: 'root' },
-    messageId: Number, // Telegram API ID for permanent delete
+    messageId: Number, 
     isTrashed: { type: Boolean, default: false },
     trashedAt: { type: Date, default: null },
     uploadedAt: { type: Date, default: Date.now }
@@ -109,17 +109,17 @@ app.post('/upload', upload.single('myFile'), async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Server error.' }); }
 });
 
-// 📂 Get Active Files & Folders
+// 📂 Get Active Files & Folders (FIXED: $ne stands for "Not Equal To" to support old files)
 app.get('/files', async (req, res) => {
-    try { res.json(await FileModel.find({ folderId: req.query.folderId || 'root', isTrashed: false }).sort({ uploadedAt: -1 })); } catch (err) { res.status(500).json([]); }
+    try { res.json(await FileModel.find({ folderId: req.query.folderId || 'root', isTrashed: { $ne: true } }).sort({ uploadedAt: -1 })); } catch (err) { res.status(500).json([]); }
 });
 app.get('/folders', async (req, res) => {
-    try { res.json(await FolderModel.find({ parentId: req.query.parentId || 'root', isTrashed: false }).sort({ createdAt: -1 })); } catch (err) { res.status(500).json([]); }
+    try { res.json(await FolderModel.find({ parentId: req.query.parentId || 'root', isTrashed: { $ne: true } }).sort({ createdAt: -1 })); } catch (err) { res.status(500).json([]); }
 });
 
 // 🔍 Search Active Files
 app.get('/files/all', async (req, res) => {
-    try { res.json(await FileModel.find({ isTrashed: false }).sort({ uploadedAt: -1 })); } catch (err) { res.status(500).json([]); }
+    try { res.json(await FileModel.find({ isTrashed: { $ne: true } }).sort({ uploadedAt: -1 })); } catch (err) { res.status(500).json([]); }
 });
 
 // ✏️ Rename Route
