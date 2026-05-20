@@ -6,7 +6,7 @@ let ctxTarget = null;
 let allFiles = []; 
 let selectedIds = new Set();
 let isDark = true;
-let currentView = 'drive'; // 'drive' or 'trash'
+let currentView = 'drive'; 
 
 window.addEventListener('DOMContentLoaded', () => {
   applyTheme(localStorage.getItem('td_theme') || 'dark');
@@ -70,7 +70,6 @@ function backToStep1() { document.getElementById('step2').style.display = 'none'
 function logout() { sessionStorage.removeItem('td_auth'); window.location.reload(); }
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('show'); }
 
-// ── VIEWS & NAVIGATION ──
 function switchView(view) {
     currentView = view;
     clearSelection();
@@ -131,7 +130,7 @@ function renderItems(folders, files, isTrash = false) {
 
   if (folders.length === 0 && files.length === 0) { 
       emptyEl.style.display = 'flex'; 
-      document.getElementById('emptyIcon').className = isTrash ? 'fa-solid fa-trash-can text-5xl' : 'fa-solid fa-folder-open text-5xl';
+      document.getElementById('emptyIcon').className = isTrash ? 'fa-solid fa-trash-can text-5xl' : 'fa-solid fa-folder-open text-5xl text-slate-500';
       document.getElementById('emptyTitle').innerText = isTrash ? 'Trash is empty' : 'No files here';
       document.getElementById('emptyDesc').innerText = isTrash ? 'Deleted items will appear here.' : 'Upload files or create a folder';
       return; 
@@ -148,19 +147,16 @@ function renderItems(folders, files, isTrash = false) {
   }
 }
 
-// ── CUSTOM MODAL CONFIRMATION ──
 function customConfirm(title, desc, confirmText, callback) {
     const modal = document.getElementById('confirmModal');
     document.getElementById('confirmTitle').innerText = title;
     document.getElementById('confirmDesc').innerText = desc;
     const yesBtn = document.getElementById('confirmYesBtn');
     yesBtn.innerText = confirmText;
-    
     modal.style.display = 'flex';
     yesBtn.onclick = () => { modal.style.display = 'none'; callback(); };
 }
 
-// ── FILE/FOLDER RENDER LOGIC ──
 function makeFolderCard(folder, isTrash) {
   const div = document.createElement('div');
   div.className = `folder-card ${selectedIds.has(folder._id) ? 'selected' : ''}`; 
@@ -183,20 +179,16 @@ function getFileIcon(name) {
 function makeFileCard(file, isTrash) {
   const div = document.createElement('div');
   div.className = `file-card ${selectedIds.has(file._id) ? 'selected' : ''}`; div.dataset.id = file._id; div.dataset.type = 'file';
-  div.innerHTML = `
-    <div class="select-check">✓</div><div class="file-icon"><i class="fa-solid ${getFileIcon(file.name)}"></i></div>
-    <div><div class="file-name" title="${file.name}">${file.name}</div><div class="file-size">${file.size}</div></div>`;
+  div.innerHTML = `<div class="select-check">✓</div><div class="file-icon"><i class="fa-solid ${getFileIcon(file.name)}"></i></div><div><div class="file-name" title="${file.name}">${file.name}</div><div class="file-size">${file.size}</div></div>`;
   div.addEventListener('click', () => toggleSelect(file._id, div));
   div.addEventListener('contextmenu', e => { e.preventDefault(); ctxTarget = file; showContextMenu(e.clientX, e.clientY, 'file', isTrash); });
   div.addEventListener('dblclick', () => { if(!isTrash) previewFile(file); });
   return div;
 }
 
-// ── CONTEXT MENU DYNAMICS ──
 function showContextMenu(x, y, type, isTrash) {
     const menu = document.getElementById('contextMenu');
     menu.innerHTML = ''; 
-    
     if (isTrash) {
         menu.innerHTML += `<button onclick="restoreItem()"><i class="fa-solid fa-trash-arrow-up text-green-500"></i> Restore</button>`;
         menu.innerHTML += `<hr><button class="danger" onclick="permanentDeleteItem()"><i class="fa-solid fa-skull"></i> Delete Forever</button>`;
@@ -209,10 +201,9 @@ function showContextMenu(x, y, type, isTrash) {
         menu.innerHTML += `<button onclick="ctxMove()"><i class="fa-solid fa-arrows-turn-to-dots"></i> Move</button>`;
         menu.innerHTML += `<hr><button class="danger" onclick="trashItem()"><i class="fa-solid fa-trash"></i> Move to Trash</button>`;
     }
-    menu.classList.add('show'); menu.style.left = x + 'px'; menu.style.top = y + 'px';
+    menu.classList.add('show'); menu.style.left = Math.min(x, window.innerWidth - 180) + 'px'; menu.style.top = Math.min(y, window.innerHeight - 200) + 'px';
 }
 
-// ── FILE PREVIEWER (GOOGLE DRIVE STYLE) ──
 function previewFile(file) {
     const ext = file.name.split('.').pop().toLowerCase();
     const images = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
@@ -223,22 +214,14 @@ function previewFile(file) {
     const contentBox = document.getElementById('previewContent');
     document.getElementById('previewTitle').innerText = file.name;
     
-    if(images.includes(ext)) {
-        contentBox.innerHTML = `<img src="${file.url}" class="preview-media">`;
-    } else if(videos.includes(ext)) {
-        contentBox.innerHTML = `<video controls autoplay class="preview-media"><source src="${file.url}"></video>`;
-    } else if(audios.includes(ext)) {
-        contentBox.innerHTML = `<div class="bg-surface2 p-6 rounded-2xl w-full max-w-md text-center"><i class="fa-solid fa-music text-5xl text-purple-500 mb-4"></i><br><audio controls autoplay class="w-full"><source src="${file.url}"></audio></div>`;
-    } else if(docs.includes(ext)) {
-        const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(file.url)}&embedded=true`;
-        contentBox.innerHTML = `<iframe src="${viewerUrl}" class="preview-media bg-white"></iframe>`;
-    } else {
-        contentBox.innerHTML = `<div class="text-center text-white"><i class="fa-solid fa-file-circle-exclamation text-6xl mb-4 text-slate-500"></i><p class="text-lg">Preview not supported for this file type.</p><a href="${file.url}" target="_blank" class="btn-primary mt-4 inline-flex w-auto px-6">Download Instead</a></div>`;
-    }
+    if(images.includes(ext)) { contentBox.innerHTML = `<img src="${file.url}" class="preview-media">`; } 
+    else if(videos.includes(ext)) { contentBox.innerHTML = `<video controls autoplay class="preview-media"><source src="${file.url}"></video>`; } 
+    else if(audios.includes(ext)) { contentBox.innerHTML = `<div class="bg-surface2 p-6 rounded-2xl w-full max-w-md text-center"><i class="fa-solid fa-music text-5xl text-purple-500 mb-4"></i><br><audio controls autoplay class="w-full"><source src="${file.url}"></audio></div>`; } 
+    else if(docs.includes(ext)) { const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(file.url)}&embedded=true`; contentBox.innerHTML = `<iframe src="${viewerUrl}" class="preview-media bg-white"></iframe>`; } 
+    else { contentBox.innerHTML = `<div class="text-center text-white"><i class="fa-solid fa-file-circle-exclamation text-6xl mb-4 text-slate-500"></i><p class="text-lg">Preview not supported for this file type.</p><br><a href="${file.url}" target="_blank" class="btn-primary mt-2 inline-flex w-auto px-6" style="text-decoration:none;">Download Instead</a></div>`; }
     document.getElementById('previewModal').style.display = 'flex';
 }
 
-// ── RENAMING LOGIC ──
 function openRenameModal() {
     if(!ctxTarget) return;
     document.getElementById('renameInput').value = ctxTarget.name;
@@ -248,16 +231,13 @@ function openRenameModal() {
 async function submitRename() {
     const newName = document.getElementById('renameInput').value.trim();
     if(!newName || newName === ctxTarget.name) { document.getElementById('renameModal').style.display = 'none'; return; }
-    
     const route = ctxTarget.url ? `/files/${ctxTarget._id}/rename` : `/folders/${ctxTarget._id}/rename`;
     const type = ctxTarget.url ? 'file' : 'folder';
-    
     await fetch(route, { method: 'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({newName, type}) });
     document.getElementById('renameModal').style.display = 'none';
     currentView === 'drive' ? loadCurrentFolder() : loadTrash();
 }
 
-// ── TRASH & DELETE LOGIC ──
 function trashItem() {
     customConfirm('Move to Trash?', 'File will be automatically deleted forever after 30 days.', 'Move to Trash', async () => {
         const route = ctxTarget.url ? `/files/${ctxTarget._id}/trash` : `/folders/${ctxTarget._id}/trash`;
@@ -276,7 +256,6 @@ function permanentDeleteItem() {
     });
 }
 
-// ── MULTI SELECTION & BULK ACTIONS ──
 function toggleSelect(id, el) {
   if (selectedIds.has(id)) { selectedIds.delete(id); el.classList.remove('selected'); } else { selectedIds.add(id); el.classList.add('selected'); }
   updateActionBar();
@@ -285,14 +264,11 @@ function updateActionBar() {
   const bar = document.getElementById('actionBar');
   bar.style.display = selectedIds.size > 0 ? 'flex' : 'none';
   document.getElementById('selectedCount').textContent = `${selectedIds.size} selected`;
-  
   const tools = document.getElementById('actionBarTools');
   if(currentView === 'trash') {
-      tools.innerHTML = `<button class="ab-btn" onclick="bulkRestore()"><i class="fa-solid fa-trash-arrow-up"></i> Restore</button>
-                         <button class="ab-btn danger" onclick="bulkPermanentDelete()"><i class="fa-solid fa-skull"></i> Delete All</button>`;
+      tools.innerHTML = `<button class="ab-btn" onclick="bulkRestore()"><i class="fa-solid fa-trash-arrow-up"></i> Restore</button><button class="ab-btn danger" onclick="bulkPermanentDelete()"><i class="fa-solid fa-skull"></i> Delete All</button>`;
   } else {
-      tools.innerHTML = `<button class="ab-btn" onclick="bulkMove()" title="Move"><i class="fa-solid fa-folder-tree"></i></button>
-                         <button class="ab-btn danger" onclick="bulkTrash()" title="Trash"><i class="fa-solid fa-trash"></i></button>`;
+      tools.innerHTML = `<button class="ab-btn" onclick="bulkDownload()" title="Download"><i class="fa-solid fa-download"></i></button><button class="ab-btn" onclick="bulkMove()" title="Move"><i class="fa-solid fa-folder-tree"></i></button><button class="ab-btn danger" onclick="bulkTrash()" title="Trash"><i class="fa-solid fa-trash"></i></button>`;
   }
 }
 function clearSelection() { selectedIds.clear(); document.querySelectorAll('.file-card, .folder-card').forEach(el => el.classList.remove('selected')); updateActionBar(); }
@@ -323,8 +299,16 @@ async function bulkPermanentDelete() {
         clearSelection(); loadTrash();
     });
 }
+async function bulkDownload() {
+  for (const id of selectedIds) {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el && el.dataset.type === 'file') {
+      const targetUrl = allFiles.find(f => f._id === id)?.url || '';
+      if (targetUrl) window.open(targetUrl, '_blank');
+    }
+  }
+}
 
-// ── UPLOAD SYSTEM ──
 document.getElementById('filePicker').addEventListener('change', async e => {
   const files = Array.from(e.target.files); if (!files.length) return;
   const queue = document.getElementById('uploadQueue'); queue.style.display = 'flex';
@@ -354,7 +338,6 @@ document.getElementById('filePicker').addEventListener('change', async e => {
   setTimeout(() => { queue.style.display = 'none'; queue.innerHTML = ''; loadCurrentFolder(); }, 1000);
 });
 
-// Create folder & search utilities
 async function createFolder() {
   const name = prompt('Folder name:'); if (!name || !name.trim()) return;
   await fetch('/folders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), parentId: currentFolderId }) });
@@ -367,7 +350,8 @@ async function searchFiles() {
   const q = document.getElementById('searchInput').value.toLowerCase().trim();
   if(!q) return currentView === 'drive' ? loadCurrentFolder() : loadTrash();
   const res = await fetch('/files/all');
-  renderItems([], (await res.json()).filter(f => f.name.toLowerCase().includes(q)));
+  allFiles = await res.json();
+  renderItems([], allFiles.filter(f => f.name.toLowerCase().includes(q)));
 }
 function ctxMove() {
   if (!ctxTarget) return;
