@@ -9,11 +9,10 @@ const PORT = 3000;
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-const TELEGRAM_BOT_TOKEN = '8215791987:AAFKWHNcRZSiHEmfyW9P1m_fz_8Obo5kSCg';
-const TELEGRAM_CHAT_ID = '7889415421';
-
-const APP_USERNAME = 'CHANDRDEEP'; 
-const APP_PASSWORD = 'Mnb1134';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const APP_USERNAME = process.env.APP_USERNAME;
+const APP_PASSWORD = process.env.APP_PASSWORD;
 
 const DB_FILE = 'database.json';
 
