@@ -89,6 +89,17 @@ app.get('/files', (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+app.delete('/delete', (req, res) => {
+  try {
+    const { name } = req.body;
+    let files = readDatabase();
+    files = files.filter(f => f.name !== name);
+    writeDatabase(files);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false });
+  }
+});
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${PORT}`);
