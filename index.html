@@ -1,227 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TG Drive</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeleDrive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- LOADING SCREEN -->
-  <div id="loadingScreen">
-    <div class="loader-content">
-      <div class="loader-icon">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="14" fill="#5B6EE8"/>
-          <path d="M14 24L21 31L34 17" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
-      <p class="loader-text">Loading TG Drive...</p>
+<!-- LOADING SCREEN -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="loader-content">
+    <div class="loader-icon">
+      <div class="loader-ring"></div>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/><path d="m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10"/></svg>
     </div>
+    <p>TeleDrive</p>
   </div>
+</div>
 
-  <!-- LOGIN SCREEN -->
-  <div id="loginScreen" class="hidden">
-    <div class="login-bg">
-      <div class="login-blob b1"></div>
-      <div class="login-blob b2"></div>
-      <div class="login-blob b3"></div>
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-bg">
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+    <div class="blob blob3"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/></svg>
     </div>
-    <div class="login-card">
-      <div class="login-logo">
-        <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="14" fill="#5B6EE8"/>
-          <path d="M14 24L21 31L34 17" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>TG Drive</span>
-      </div>
-      <h1 class="login-title">Welcome back</h1>
-      <p class="login-sub">Sign in to your personal cloud</p>
+    <h1>TeleDrive</h1>
+    <p class="login-sub">Your personal cloud, powered by Telegram</p>
 
+    <!-- STEP 1: Username/Password -->
+    <div id="step1">
       <div class="input-group">
         <label>Username</label>
-        <div class="input-wrap">
-          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <input type="text" id="usernameInput" placeholder="Enter username" autocomplete="username">
-        </div>
+        <input type="text" id="usernameInput" placeholder="Enter username" autocomplete="off">
       </div>
-
       <div class="input-group">
         <label>Password</label>
-        <div class="input-wrap">
-          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <input type="password" id="passwordInput" placeholder="Enter password" autocomplete="current-password">
-          <button class="toggle-pass" id="togglePass" tabindex="-1">
-            <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <div class="pass-wrap">
+          <input type="password" id="passwordInput" placeholder="Enter password">
+          <button class="eye-btn" onclick="togglePass()" id="eyeBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
       </div>
-
-      <div id="loginError" class="login-error hidden">Incorrect username or password</div>
-
-      <button class="btn-login" id="loginBtn">
-        <span id="loginBtnText">Sign In</span>
-        <div id="loginSpinner" class="btn-spinner hidden"></div>
+      <button class="btn-primary" id="loginBtn" onclick="requestOTP()">
+        <span>Continue</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+
+    <!-- STEP 2: OTP -->
+    <div id="step2" style="display:none">
+      <div class="otp-info">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/></svg>
+        <span>OTP aapke Telegram par bheja gaya hai</span>
+      </div>
+      <div class="input-group">
+        <label>Enter OTP</label>
+        <input type="text" id="otpInput" placeholder="6-digit code" maxlength="6" inputmode="numeric">
+      </div>
+      <button class="btn-primary" onclick="verifyOTP()">
+        <span>Verify & Login</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      </button>
+      <button class="btn-ghost" onclick="backToStep1()">← Back</button>
+      <div class="login-error" id="otpError"></div>
     </div>
   </div>
+</div>
 
-  <!-- MAIN DRIVE -->
-  <div id="driveContent" class="hidden">
+<!-- DRIVE CONTENT -->
+<div id="driveContent" style="display:none">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/></svg>
+      <span>TeleDrive</span>
+    </div>
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <svg width="30" height="30" viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="14" fill="#5B6EE8"/>
-          <path d="M14 24L21 31L34 17" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>TG Drive</span>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" onclick="navigateTo('root')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        My Drive
+      </a>
+      <a class="nav-item" onclick="showSearch()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="storage-info">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        <span>Unlimited Storage</span>
       </div>
-
-      <button class="upload-trigger" id="uploadTrigger">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        New Upload
+      <button class="btn-logout" onclick="logout()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Logout
       </button>
-      <input type="file" id="filePicker" style="display:none" multiple>
+    </div>
+  </aside>
 
-      <nav class="sidebar-nav">
-        <div class="nav-section-label">Storage</div>
-        <a class="nav-item active" data-view="myfiles" href="#">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          My Drive
-        </a>
-        <a class="nav-item" data-view="folders" href="#">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
-          Folders
-        </a>
-        <a class="nav-item" data-view="recent" href="#">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Recent
-        </a>
-      </nav>
-
-      <div class="sidebar-bottom">
-        <div class="storage-info">
-          <div class="storage-label">
-            <span>Storage</span>
-            <span class="storage-val">Unlimited ∞</span>
-          </div>
-          <div class="storage-bar"><div class="storage-fill"></div></div>
-          <p class="storage-sub">Powered by Telegram</p>
+  <!-- MAIN -->
+  <main class="main-content">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="breadcrumb" id="breadcrumb">
+        <span onclick="navigateTo('root')">My Drive</span>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-box" id="searchBox" style="display:none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="searchInput" placeholder="Search files..." oninput="searchFiles()">
+          <button onclick="hideSearch()">✕</button>
         </div>
-        <button class="logout-btn" id="logoutBtn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Sign Out
+        <button class="icon-btn" onclick="showSearch()" title="Search" id="searchToggle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </button>
-      </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-
-      <!-- TOP BAR -->
-      <div class="topbar">
-        <div class="topbar-left">
-          <h2 id="viewTitle">My Drive</h2>
-        </div>
-        <div class="topbar-right">
-          <div class="search-wrap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="searchInput" placeholder="Search files...">
-          </div>
-          <div class="view-toggle">
-            <button class="view-btn active" id="gridViewBtn" title="Grid view">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            </button>
-            <button class="view-btn" id="listViewBtn" title="List view">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- UPLOAD PROGRESS -->
-      <div id="uploadProgress" class="upload-progress hidden">
-        <div class="up-info">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-          <span id="uploadFileName">Uploading...</span>
-          <span id="uploadPercent">0%</span>
-        </div>
-        <div class="up-bar-wrap"><div class="up-bar" id="uploadBar"></div></div>
-      </div>
-
-      <!-- FOLDERS VIEW -->
-      <div id="foldersView" class="hidden">
-        <div class="section-header">
-          <h3>Folders</h3>
-          <button class="btn-new-folder" id="newFolderBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Folder
-          </button>
-        </div>
-        <div class="folders-grid" id="foldersGrid"></div>
-      </div>
-
-      <!-- FILES VIEW -->
-      <div id="filesView">
-        <div class="section-header">
-          <h3 id="filesViewTitle">All Files</h3>
-          <div class="sort-wrap">
-            <select id="sortSelect">
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="name">Name A-Z</option>
-              <option value="size">By size</option>
-            </select>
-          </div>
-        </div>
-
-        <div id="emptyState" class="empty-state hidden">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          <p>No files yet</p>
-          <span>Click "New Upload" to add your first file</span>
-        </div>
-
-        <div class="files-grid" id="filesGrid"></div>
-      </div>
-
-    </main>
-  </div>
-
-  <!-- NEW FOLDER MODAL -->
-  <div id="folderModal" class="modal-overlay hidden">
-    <div class="modal-box">
-      <h3>Create New Folder</h3>
-      <input type="text" id="folderNameInput" placeholder="Folder name..." maxlength="40">
-      <div class="modal-actions">
-        <button class="btn-cancel" id="cancelFolder">Cancel</button>
-        <button class="btn-create" id="createFolder">Create</button>
+        <button class="icon-btn" onclick="toggleView()" id="viewToggle" title="Toggle view">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </button>
+        <button class="btn-new-folder" onclick="createFolder()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+          New Folder
+        </button>
+        <label class="btn-upload" for="filePicker">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Upload
+        </label>
+        <input type="file" id="filePicker" style="display:none" multiple>
       </div>
     </div>
-  </div>
 
-  <!-- FILE CONTEXT MENU -->
-  <div id="contextMenu" class="context-menu hidden">
-    <button class="ctx-item" id="ctxDownload">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Download
-    </button>
-    <button class="ctx-item" id="ctxMove">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-      Move to Folder
-    </button>
-    <div class="ctx-divider"></div>
-    <button class="ctx-item ctx-danger" id="ctxDelete">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-      Delete
-    </button>
-  </div>
+    <!-- UPLOAD PROGRESS -->
+    <div class="upload-progress-bar" id="uploadProgressBar" style="display:none">
+      <div class="upload-progress-inner">
+        <div class="upload-progress-file">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          <span id="uploadFileName">Uploading...</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+    </div>
 
-  <script src="script.js"></script>
+    <!-- FILE LIST -->
+    <div class="file-area" id="fileArea">
+      <div class="empty-state" id="emptyState" style="display:none">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+        <p>No files here yet</p>
+        <span>Upload files or create a folder</span>
+      </div>
+      <div class="file-grid" id="fileList"></div>
+    </div>
+  </main>
+</div>
+
+<!-- CONTEXT MENU -->
+<div class="context-menu" id="contextMenu">
+  <button onclick="ctxDownload()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+    Download
+  </button>
+  <button onclick="ctxMove()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    Move to Folder
+  </button>
+  <hr>
+  <button class="danger" onclick="ctxDelete()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+    Delete
+  </button>
+</div>
+
+<!-- MOVE MODAL -->
+<div class="modal-overlay" id="moveModal" style="display:none" onclick="closeMoveModal(event)">
+  <div class="modal">
+    <h3>Move to Folder</h3>
+    <div id="folderPickerList"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="document.getElementById('moveModal').style.display='none'">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
