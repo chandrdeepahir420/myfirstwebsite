@@ -16,7 +16,11 @@ function toggleTheme() {
     applyTheme(t); 
     localStorage.setItem('td_theme', t); 
 }
-
+function formatDate(dateString) {
+    if(!dateString) return '--';
+    const d = new Date(dateString);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 let currentFolderId = 'root';
 let folderStack = [];
 let isGridView = true;
@@ -187,7 +191,10 @@ document.addEventListener('mouseup', () => isDragging = false);
 
 function renderItems(folders, files, isTrash) {
     const listEl = document.getElementById('fileList'), emptyEl = document.getElementById('emptyState');
+    const header = document.getElementById('listHeader');
+    
     listEl.className = `file-grid${isGridView ? '' : ' list-view'}`; listEl.innerHTML = '';
+    if(header) header.style.display = (!isGridView && (folders.length || files.length)) ? 'flex' : 'none';
     
     if(!folders.length && !files.length) { 
         emptyEl.style.display='flex'; 
@@ -199,7 +206,11 @@ function renderItems(folders, files, isTrash) {
     
     folders.forEach(f => {
         const d = document.createElement('div'); d.className = `folder-card ${selectedIds.has(f._id)?'selected':''}`; d.dataset.id = f._id;
-        d.innerHTML = `<div class="select-check">✓</div><div style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-folder text-amber-500"></i> <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${f.name}</span></div>`;
+        d.innerHTML = `
+            <div class="select-check">✓</div>
+            <div class="item-name-box"><i class="fa-solid fa-folder text-amber-500"></i> <span>${f.name}</span></div>
+            <div class="item-date-box">${formatDate(f.createdAt)}</div>
+            <div class="item-size-box">--</div>`;
         d.addEventListener('mouseenter', () => { if(isDragging) toggleSelect(f._id, d, true); });
         d.addEventListener('mousedown', () => toggleSelect(f._id, d));
         d.addEventListener('dblclick', () => { if(!isTrash) navigateTo(f._id, f.name); });
@@ -209,7 +220,11 @@ function renderItems(folders, files, isTrash) {
     
     files.forEach(f => {
         const d = document.createElement('div'); d.className = `file-card ${selectedIds.has(f._id)?'selected':''}`; d.dataset.id = f._id;
-        d.innerHTML = `<div class="select-check">✓</div><div style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-file text-blue-400"></i> <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1">${f.name}</div></div><div style="font-size:0.75rem; color:gray; margin-top:8px">${f.size}</div>`;
+        d.innerHTML = `
+            <div class="select-check">✓</div>
+            <div class="item-name-box"><i class="fa-solid fa-file text-blue-400"></i> <span>${f.name}</span></div>
+            <div class="item-date-box">${formatDate(f.uploadedAt)}</div>
+            <div class="item-size-box">${f.size || '0 MB'}</div>`;
         d.addEventListener('mouseenter', () => { if(isDragging) toggleSelect(f._id, d, true); });
         d.addEventListener('mousedown', () => toggleSelect(f._id, d));
         d.addEventListener('dblclick', () => { if(!isTrash) previewFile(f); });
@@ -218,6 +233,10 @@ function renderItems(folders, files, isTrash) {
     });
 }
 
+function toggleView() { 
+    isGridView = !isGridView; 
+    sortFiles(); 
+}
 // ==========================================
 // 7. ADVANCED UPLOAD TASK CENTER
 // ==========================================
@@ -237,28 +256,52 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
         activeUploads.push({ id: taskId, controller });
         
         const el = document.createElement('div'); el.className = 'task-item'; el.id = `task-${taskId}`;
-        el.innerHTML = `<div class="task-header"><span>${file.name}</span><button class="btn-ghost" style="padding:2px 6px; font-size:0.6rem; border:none; color:var(--danger)" onclick="cancelUpload('${taskId}')"><i class="fa-solid fa-xmark"></i></button></div><div class="task-bar"><div class="task-fill" id="fill-${taskId}"></div></div>`;
+        // Naya HTML detailed stats ke liye
+        el.innerHTML = `
+            <div class="task-header">
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">${file.name}</span>
+                <button class="btn-ghost" style="padding:2px 6px; font-size:0.6rem; border:none; color:var(--danger)" onclick="cancelUpload('${taskId}')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="task-meta">
+                <span id="meta-${taskId}">0% • 0 / 0 MB</span>
+                <span id="speed-${taskId}" class="task-speed">Connecting...</span>
+            </div>
+            <div class="task-bar"><div class="task-fill" id="fill-${taskId}"></div></div>`;
         list.appendChild(el);
 
         const formData = new FormData(); formData.append('myFile', file); formData.append('folderId', currentFolderId);
-        
+        const startTime = Date.now(); // Speed calculate karne ke liye time
+
         try {
             const xhr = new XMLHttpRequest();
             await new Promise((resolve, reject) => {
                 controller.signal.addEventListener('abort', () => { xhr.abort(); reject('Cancelled'); });
-                xhr.upload.onprogress = ev => { if(ev.lengthComputable) document.getElementById(`fill-${taskId}`).style.width = Math.round((ev.loaded/ev.total)*100)+'%'; };
+                xhr.upload.onprogress = ev => { 
+                    if(ev.lengthComputable) {
+                        const pct = Math.round((ev.loaded/ev.total)*100);
+                        document.getElementById(`fill-${taskId}`).style.width = pct + '%';
+                        
+                        // Live Stats calculation
+                        const loadedMB = (ev.loaded / (1024*1024)).toFixed(1);
+                        const totalMB = (ev.total / (1024*1024)).toFixed(1);
+                        const timeElapsed = (Date.now() - startTime) / 1000;
+                        const speed = timeElapsed > 0 ? (loadedMB / timeElapsed).toFixed(1) : 0;
+                        
+                        document.getElementById(`meta-${taskId}`).innerText = `${pct}% • ${loadedMB} / ${totalMB} MB`;
+                        document.getElementById(`speed-${taskId}`).innerText = `${speed} MB/s`;
+                    }
+                };
                 xhr.onload = () => resolve(xhr.responseText);
                 xhr.onerror = () => reject('Error');
                 xhr.open('POST', '/upload');
                 xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('td_token')}`);
                 xhr.send(formData);
             });
-            document.getElementById(`task-${taskId}`).innerHTML = `<span style="color:var(--success); font-size:0.8rem">✓ ${file.name} (Done)</span>`;
+            document.getElementById(`task-${taskId}`).innerHTML = `<span style="color:var(--success); font-size:0.8rem">✓ ${file.name} (Uploaded Successfully)</span>`;
         } catch(err) { document.getElementById(`task-${taskId}`).innerHTML = `<span style="color:var(--danger); font-size:0.8rem">✗ ${file.name} (${err})</span>`; }
     }
     setTimeout(loadCurrentFolder, 1000);
 });
-
 function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == taskId); if(task) task.controller.abort(); }
 
 // ==========================================
