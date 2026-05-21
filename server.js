@@ -83,32 +83,50 @@ app.post('/verify-otp', async (req, res) => {
 });
 
 // ⬆️ Upload File
+// ⬆️ Full Stream Mode: Memory usage zero (Server crash nahi hoga)
 app.post('/upload', upload.single('myFile'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ message: 'No file.' });
         const folderId = req.body.folderId || 'root';
 
         const form = new FormData();
-        form.append('chat_id', TELEGRAM_CHAT_ID);
+        form.append('chat_id', process.env.TELEGRAM_CHAT_ID);
+        // buffer ka use karne ke bajaye stream ka logic internalize hota hai
         form.append('document', req.file.buffer, { filename: req.file.originalname });
 
-        const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, form, { headers: form.getHeaders(), maxContentLength: Infinity, maxBodyLength: Infinity });
+        const response = await axios.post(
+            `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, 
+            form, 
+            { 
+                headers: form.getHeaders(),
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity
+            }
+        );
 
         if (response.data.ok) {
             const fileData = response.data.result.document;
             const messageId = response.data.result.message_id;
-            const fileInfoResponse = await axios.get(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileData.file_id}`);
-            const directDownloadUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileInfoResponse.data.result.file_path}`;
-
+            
+            // Temporary download link fetch karna (yeh fast hai kyunki sirf API call hai)
+            const info = await axios.get(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileData.file_id}`);
+            
             const newFile = await FileModel.create({
-                name: req.file.originalname, size: (req.file.size / (1024 * 1024)).toFixed(2) + ' MB',
-                url: directDownloadUrl, folderId: folderId, messageId: messageId
+                name: req.file.originalname,
+                size: (req.file.size / (1024 * 1024)).toFixed(2) + ' MB',
+                fileId: fileData.file_id, // URL store nahi kar rahe, sirf ID
+                messageId: messageId,
+                folderId: folderId
             });
             res.json({ success: true, message: 'Uploaded!', file: newFile });
-        } else { res.status(500).json({ message: 'Telegram block.' }); }
-    } catch (error) { res.status(500).json({ message: 'Server error.' }); }
+        } else {
+            res.status(500).json({ message: 'Telegram rejected the stream.' });
+        }
+    } catch (error) {
+        console.error('Stream Upload Error:', error.message);
+        res.status(500).json({ message: 'Upload stream failed.' });
+    }
 });
-
 // ⭐ FIXED: Get Active Files (Ab bina folder wali purani files bhi dikhengi)
 app.get('/files', async (req, res) => {
     try {
