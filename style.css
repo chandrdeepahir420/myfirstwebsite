@@ -226,3 +226,22 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 .preview-overlay { flex-direction:column; background:rgba(0,0,0,0.9); }
 .preview-content-box { width:90%; height:80vh; display:flex; justify-content:center; align-items:center; }
 .preview-media { max-width:100%; max-height:100%; border-radius:12px; }
+/* ── UI FIX: Google Drive Style List & Headers ── */
+.list-header { display: flex; padding: 0 14px 10px 45px; border-bottom: 1px solid var(--border); margin-bottom: 10px; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.lh-name { flex: 2; } .lh-date { flex: 1; } .lh-size { width: 80px; text-align: right; }
+
+.list-view .file-card, .list-view .folder-card { display: flex; flex-direction: row; align-items: center; padding: 12px 14px; gap: 0; }
+.item-name-box { flex: 2; display: flex; align-items: center; gap: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-right: 15px;}
+.item-date-box { flex: 1; font-size: 0.8rem; color: var(--text-muted); }
+.item-size-box { width: 80px; font-size: 0.8rem; color: var(--text-muted); text-align: right; }
+
+/* Grid view ke liye date aur size chhupa dein */
+.file-grid:not(.list-view) .item-date-box { display: none; }
+.file-grid:not(.list-view) .item-size-box { font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; text-align: left; width: auto;}
+.file-grid:not(.list-view) .item-name-box { width: 100%; display:block; padding-top: 4px;}
+.file-grid:not(.list-view) .select-check { top: 8px; left: 8px; }
+.list-view .select-check { position: relative; top: 0; left: 0; margin-right: 12px; }
+
+/* ── UI FIX: Task Panel Detailed Stats ── */
+.task-meta { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; margin-bottom: 6px;}
+.task-speed { color: var(--accent); font-weight: 600; }
