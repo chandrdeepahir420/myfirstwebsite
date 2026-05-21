@@ -3,245 +3,187 @@ const axios = require('axios');
 const multer = require('multer');
 const FormData = require('form-data');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-teledrive-key-2026';
 
-const upload = multer({ storage: multer.memoryStorage() });
+// ZERO-RAM STREAMING SETUP: Memory ki jagah Hard disk (temp folder) me cache karke stream karenge
+const tempDir = path.join(__ section, 'temp_uploads');
+if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, tempDir),
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage });
 
-// ================== ⚙️ SECURE ENVIRONMENT VARIABLES ==================
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const APP_USERNAME = process.env.APP_USERNAME;
-const APP_PASSWORD = process.env.APP_PASSWORD;
-const MONGO_URI = process.env.MONGO_URI;
-// =======================================================================
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('✅ MongoDB Connected securely'))
+    .catch(err => console.error('❌ DB Error:', err));
 
-mongoose.connect(MONGO_URI)
-    .then(() => console.log('✅ MongoDB Engine connected successfully!'))
-    .catch(err => console.error('❌ MongoDB Engine connection failed:', err));
+// Database Schemas
+const FileSchema = new mongoose.Schema({
+    name: String, size: String, fileId: String, folderId: { type: String, default: 'root' },
+    messageId: Number, isTrashed: { type: Boolean, default: false },
+    trashedAt: { type: Date, default: null }, uploadedAt: { type: Date, default: Date.now }
+});
+const FileModel = mongoose.model('File', FileSchema);
 
-// 📁 Folders Schema
 const FolderSchema = new mongoose.Schema({
-    name: String,
-    parentId: { type: String, default: 'root' },
-    isTrashed: { type: Boolean, default: false },
-    trashedAt: { type: Date, default: null },
+    name: String, parentId: { type: String, default: 'root' },
+    isTrashed: { type: Boolean, default: false }, trashedAt: { type: Date, default: null },
     createdAt: { type: Date, default: Date.now }
 });
 const FolderModel = mongoose.model('Folder', FolderSchema);
 
-// 📄 Files Schema 
-const FileSchema = new mongoose.Schema({
-    name: String,
-    size: String,
-    url: String,
-    folderId: { type: String, default: 'root' },
-    messageId: Number, 
-    isTrashed: { type: Boolean, default: false },
-    trashedAt: { type: Date, default: null },
-    uploadedAt: { type: Date, default: Date.now }
-});
-const FileModel = mongoose.model('File', FileSchema);
-
-// 🔐 OTP Schema
-const OTPSchema = new mongoose.Schema({
-    code: String,
-    used: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now, expires: 300 } 
-});
+const OTPSchema = new mongoose.Schema({ code: String, used: { type: Boolean, default: false }, createdAt: { type: Date, default: Date.now, expires: 300 } });
 const OTPModel = mongoose.model('OTP', OTPSchema);
 
-app.use(express.json());
+const AdminSchema = new mongoose.Schema({ username: String, password: String });
+const AdminModel = mongoose.model('Admin', AdminSchema);
+
+// INIT ADMIN CREDENTIALS
+async function getAdminCreds() {
+    let admin = await AdminModel.findOne();
+    if (!admin) admin = await AdminModel.create({ username: process.env.APP_USERNAME, password: process.env.APP_PASSWORD });
+    return admin;
+}
+
+app.use(express.json()); 
 app.use(express.static('.'));
 
-// 🔑 Authentication Routes
-app.post('/request-otp', async (req, res) => {
-    const { username, password } = req.body;
-    if (username !== APP_USERNAME || password !== APP_PASSWORD) {
-        return res.status(401).json({ success: false, message: 'Galat credentials!' });
-    }
+// JWT SECURITY MIDDLEWARE (Guard)
+const checkAuth = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1] || req.query.token;
+    if (!token) return res.status(401).json({ success: false, message: 'Unauthorized Access' });
     try {
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        await OTPModel.deleteMany({}); 
-        await OTPModel.create({ code });
+        jwt.verify(token, JWT_SECRET);
+        next();
+    } catch (err) { res.status(401).json({ success: false, message: 'Invalid Token' }); }
+};
 
-        const msg = `🔐 *TeleDrive Security*\nYour 6-Digit OTP is: *${code}*`;
-        await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, { chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'Markdown' });
-        res.json({ success: true, message: 'OTP sent!' });
-    } catch (err) { res.status(500).json({ success: false, message: 'OTP failed.' }); }
+// AUTH ROUTES
+app.post('/request-otp', async (req, res) => {
+    try {
+        const admin = await getAdminCreds();
+        if (req.body.username !== admin.username || req.body.password !== admin.password) return res.status(401).json({ success: false });
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        await OTPModel.deleteMany({}); await OTPModel.create({ code });
+        await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { chat_id: process.env.TELEGRAM_CHAT_ID, text: `🔐 OTP: *${code}*`, parse_mode: 'Markdown' });
+        res.json({ success: true });
+    } catch { res.status(500).json({ success: false }); }
 });
 
 app.post('/verify-otp', async (req, res) => {
-    const { code } = req.body;
-    try {
-        const otp = await OTPModel.findOne({ code, used: false });
-        if (!otp) return res.status(401).json({ success: false, message: 'Galat OTP!' });
-        otp.used = true; await otp.save();
-        res.json({ success: true, message: 'Login successful!' });
-    } catch (err) { res.status(500).json({ success: false }); }
+    const otp = await OTPModel.findOne({ code: req.body.code, used: false });
+    if (!otp) return res.status(401).json({ success: false });
+    otp.used = true; await otp.save();
+    const token = jwt.sign({ admin: true }, JWT_SECRET, { expiresIn: '7d' }); // Token valid for 7 days
+    res.json({ success: true, token });
 });
 
-// ⬆️ Upload File
-// ⬆️ Full Stream Mode: Memory usage zero (Server crash nahi hoga)
-app.post('/upload', upload.single('myFile'), async (req, res) => {
+// SETTINGS: Change Password
+app.post('/change-password', checkAuth, async (req, res) => {
+    try {
+        const { currentPass, newPass } = req.body;
+        const admin = await getAdminCreds();
+        if (admin.password !== currentPass) return res.status(401).json({ success: false, message: 'Wrong current password' });
+        admin.password = newPass; await admin.save();
+        res.json({ success: true });
+    } catch { res.status(500).json({ success: false }); }
+});
+
+// SECURE UPLOAD (Zero RAM usage Stream)
+app.post('/upload', checkAuth, upload.single('myFile'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ message: 'No file.' });
-        const folderId = req.body.folderId || 'root';
-
         const form = new FormData();
         form.append('chat_id', process.env.TELEGRAM_CHAT_ID);
-        // buffer ka use karne ke bajaye stream ka logic internalize hota hai
-        form.append('document', req.file.buffer, { filename: req.file.originalname });
+        form.append('document', fs.createReadStream(req.file.path), { filename: req.file.originalname });
 
-        const response = await axios.post(
-            `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, 
-            form, 
-            { 
-                headers: form.getHeaders(),
-                maxContentLength: Infinity,
-                maxBodyLength: Infinity
-            }
-        );
+        const resp = await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, form, { headers: form.getHeaders(), maxContentLength: Infinity, maxBodyLength: Infinity });
+        fs.unlinkSync(req.file.path); // Delete from Temp DB
 
-        if (response.data.ok) {
-            const fileData = response.data.result.document;
-            const messageId = response.data.result.message_id;
-            
-            // Temporary download link fetch karna (yeh fast hai kyunki sirf API call hai)
-            const info = await axios.get(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileData.file_id}`);
-            
-            const newFile = await FileModel.create({
-                name: req.file.originalname,
-                size: (req.file.size / (1024 * 1024)).toFixed(2) + ' MB',
-                fileId: fileData.file_id, // URL store nahi kar rahe, sirf ID
-                messageId: messageId,
-                folderId: folderId
-            });
-            res.json({ success: true, message: 'Uploaded!', file: newFile });
-        } else {
-            res.status(500).json({ message: 'Telegram rejected the stream.' });
-        }
-    } catch (error) {
-        console.error('Stream Upload Error:', error.message);
-        res.status(500).json({ message: 'Upload stream failed.' });
+        const newFile = await FileModel.create({
+            name: req.file.originalname, size: (req.file.size/1024/1024).toFixed(2)+' MB',
+            fileId: resp.data.result.document.file_id, messageId: resp.data.result.message_id,
+            folderId: req.body.folderId || 'root'
+        });
+        res.json({ success: true, file: newFile });
+    } catch (err) { 
+        if (req.file) fs.unlinkSync(req.file.path);
+        res.status(500).json({ message: 'Error' }); 
     }
 });
-// ⭐ FIXED: Get Active Files (Ab bina folder wali purani files bhi dikhengi)
-app.get('/files', async (req, res) => {
-    try {
-        const targetFolder = req.query.folderId || 'root';
-        let filter = { isTrashed: { $ne: true } };
-        
-        // Agar folder Root hai, toh 'root' aur 'blank' (purani files) dono ko dhoondo
-        if (targetFolder === 'root') {
-            filter.$or = [{ folderId: 'root' }, { folderId: { $exists: false } }, { folderId: null }];
-        } else {
-            filter.folderId = targetFolder;
-        }
 
-        res.json(await FileModel.find(filter).sort({ uploadedAt: -1 }));
-    } catch (err) { res.status(500).json([]); }
-});
-
-// ⭐ FIXED: Get Active Folders (Same logic for folders if any were missing)
-app.get('/folders', async (req, res) => {
-    try {
-        const targetParent = req.query.parentId || 'root';
-        let filter = { isTrashed: { $ne: true } };
-
-        if (targetParent === 'root') {
-            filter.$or = [{ parentId: 'root' }, { parentId: { $exists: false } }, { parentId: null }];
-        } else {
-            filter.parentId = targetParent;
-        }
-
-        res.json(await FolderModel.find(filter).sort({ createdAt: -1 }));
-    } catch (err) { res.status(500).json([]); }
-});
-
-// 🔍 Search Active Files
-app.get('/files/all', async (req, res) => {
-    try { res.json(await FileModel.find({ isTrashed: { $ne: true } }).sort({ uploadedAt: -1 })); } catch (err) { res.status(500).json([]); }
-});
-
-// ✏️ Rename Route
-app.patch('/files/:id/rename', async (req, res) => {
-    try {
-        const { newName, type } = req.body;
-        if(type === 'folder') await FolderModel.findByIdAndUpdate(req.params.id, { name: newName });
-        else await FileModel.findByIdAndUpdate(req.params.id, { name: newName });
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ success: false }); }
-});
-
-// 🗑️ Move to Trash (Soft Delete)
-app.delete('/files/:id/trash', async (req, res) => {
-    try { await FileModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: Date.now() }); res.json({ success: true }); } catch (err) { res.status(500).json({ success: false }); }
-});
-app.delete('/folders/:id/trash', async (req, res) => {
-    try { await FolderModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: Date.now() }); res.json({ success: true }); } catch (err) { res.status(500).json({ success: false }); }
-});
-
-// ♻️ Get Trashed Items
-app.get('/trash', async (req, res) => {
-    try {
-        const files = await FileModel.find({ isTrashed: true }).sort({ trashedAt: -1 });
-        const folders = await FolderModel.find({ isTrashed: true }).sort({ trashedAt: -1 });
-        res.json({ files, folders });
-    } catch (err) { res.status(500).json({ files: [], folders: [] }); }
-});
-
-// 🔄 Restore from Trash
-app.patch('/files/:id/restore', async (req, res) => {
-    try { await FileModel.findByIdAndUpdate(req.params.id, { isTrashed: false, trashedAt: null }); res.json({ success: true }); } catch (err) { res.status(500).json({ success: false }); }
-});
-app.patch('/folders/:id/restore', async (req, res) => {
-    try { await FolderModel.findByIdAndUpdate(req.params.id, { isTrashed: false, trashedAt: null }); res.json({ success: true }); } catch (err) { res.status(500).json({ success: false }); }
-});
-
-// 💀 PERMANENT DELETE (From DB & Telegram)
-app.delete('/files/:id/permanent', async (req, res) => {
+// SECURE DOWNLOAD (Proxy)
+app.get('/download/:id', checkAuth, async (req, res) => {
     try {
         const file = await FileModel.findById(req.params.id);
-        if (!file) return res.status(404).json({ success: false });
-        if (file.messageId) {
-            try { await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteMessage`, { chat_id: TELEGRAM_CHAT_ID, message_id: file.messageId }); } catch (e) {}
-        }
-        await FileModel.findByIdAndDelete(req.params.id);
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ success: false }); }
-});
-app.delete('/folders/:id/permanent', async (req, res) => {
-    try { await FolderModel.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (err) { res.status(500).json({ success: false }); }
+        const info = await axios.get(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${file.fileId}`);
+        res.redirect(`https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${info.data.result.file_path}`);
+    } catch { res.status(500).send('Error'); }
 });
 
-// 📦 Bulk Move
-app.patch('/files/:id/move', async (req, res) => {
-    try { await FileModel.findByIdAndUpdate(req.params.id, { folderId: req.body.folderId }); res.json({ success: true }); } catch (err) { res.status(500).json({ success: false }); }
+// SECURE API ROUTES
+app.get('/files', checkAuth, async (req, res) => {
+    const filter = { folderId: req.query.folderId || 'root', isTrashed: { $ne: true } };
+    if(req.query.folderId === 'root') filter.$or = [{ folderId: 'root' }, { folderId: { $exists: false } }];
+    res.json(await FileModel.find(filter));
 });
 
-// 📂 Create Folder
-app.post('/folders', async (req, res) => {
-    try {
-        const { name, parentId } = req.body;
-        const folder = await FolderModel.create({ name, parentId: parentId || 'root' });
-        res.json({ success: true, folder });
-    } catch (err) { res.status(500).json({ success: false }); }
+app.get('/folders', checkAuth, async (req, res) => {
+    res.json(await FolderModel.find({ parentId: req.query.parentId || 'root', isTrashed: { $ne: true } }));
 });
 
-// ⏰ CRON JOB: Auto-Delete 30 Days old trash
-setInterval(async () => {
-    try {
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        const expiredFiles = await FileModel.find({ isTrashed: true, trashedAt: { $lt: thirtyDaysAgo } });
-        for(let file of expiredFiles) {
-            if (file.messageId) { try { await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteMessage`, { chat_id: TELEGRAM_CHAT_ID, message_id: file.messageId }); } catch(e){} }
-            await FileModel.findByIdAndDelete(file._id);
-        }
-        await FolderModel.deleteMany({ isTrashed: true, trashedAt: { $lt: thirtyDaysAgo } });
-        console.log(`🧹 Auto-Cleanup: Removed ${expiredFiles.length} expired trashed files.`);
-    } catch(err) { console.error("Auto-cleanup error", err); }
-}, 12 * 60 * 60 * 1000);
+app.get('/files/all', checkAuth, async (req, res) => {
+    res.json(await FileModel.find({ isTrashed: { $ne: true } }));
+});
 
-app.listen(PORT, '0.0.0.0', () => { console.log(`🚀 Secure Operations Core listening at port ${PORT}`); });
+app.patch('/files/:id/rename', checkAuth, async (req, res) => {
+    if(req.body.type === 'folder') await FolderModel.findByIdAndUpdate(req.params.id, { name: req.body.newName });
+    else await FileModel.findByIdAndUpdate(req.params.id, { name: req.body.newName });
+    res.json({ success: true });
+});
+
+app.delete('/files/:id/trash', checkAuth, async (req, res) => {
+    await FileModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: Date.now() }); res.json({ success: true });
+});
+app.delete('/folders/:id/trash', checkAuth, async (req, res) => {
+    await FolderModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: Date.now() }); res.json({ success: true });
+});
+
+app.get('/trash', checkAuth, async (req, res) => {
+    res.json({ files: await FileModel.find({ isTrashed: true }), folders: await FolderModel.find({ isTrashed: true }) });
+});
+
+app.patch('/files/:id/restore', checkAuth, async (req, res) => {
+    await FileModel.findByIdAndUpdate(req.params.id, { isTrashed: false, trashedAt: null }); res.json({ success: true });
+});
+app.patch('/folders/:id/restore', checkAuth, async (req, res) => {
+    await FolderModel.findByIdAndUpdate(req.params.id, { isTrashed: false, trashedAt: null }); res.json({ success: true });
+});
+
+app.delete('/files/:id/permanent', checkAuth, async (req, res) => {
+    const file = await FileModel.findById(req.params.id);
+    try { await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/deleteMessage`, { chat_id: process.env.TELEGRAM_CHAT_ID, message_id: file.messageId }); } catch {}
+    await FileModel.findByIdAndDelete(req.params.id); res.json({ success: true });
+});
+app.delete('/folders/:id/permanent', checkAuth, async (req, res) => {
+    await FolderModel.findByIdAndDelete(req.params.id); res.json({ success: true });
+});
+
+app.patch('/files/:id/move', checkAuth, async (req, res) => {
+    if(req.body.type === 'folder') await FolderModel.findByIdAndUpdate(req.params.id, { parentId: req.body.folderId });
+    else await FileModel.findByIdAndUpdate(req.params.id, { folderId: req.body.folderId });
+    res.json({ success: true });
+});
+
+app.post('/folders', checkAuth, async (req, res) => {
+    await FolderModel.create({ name: req.body.name, parentId: req.body.parentId }); res.json({ success: true });
+});
+
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server on port ${PORT}`));
