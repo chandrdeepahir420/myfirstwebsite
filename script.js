@@ -1,5 +1,5 @@
 // ==========================================
-// 1. THEME & GLOBAL VARIABLES (Top par rakha hai)
+// 1. THEME & GLOBAL VARIABLES
 // ==========================================
 let isDark = true;
 function applyTheme(t) {
@@ -16,20 +16,23 @@ function toggleTheme() {
     applyTheme(t); 
     localStorage.setItem('td_theme', t); 
 }
-function formatDate(dateString) {
-    if(!dateString) return '--';
-    const d = new Date(dateString);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
+
 let currentFolderId = 'root';
 let folderStack = [];
-let isGridView = true;
+let isGridView = false; // ⭐ FIXED: Default setting changed to false (Details List View)
 let ctxTarget = null;
 let allFiles = [];
 let foldersData = [];
 let selectedIds = new Set();
 let currentView = 'drive';
 let activeUploads = []; 
+
+// Date format helper function
+function formatDate(dateString) {
+    if(!dateString) return '--';
+    const d = new Date(dateString);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 // ==========================================
 // 2. INITIALIZATION
@@ -183,10 +186,10 @@ function sortFiles(isTrash = false) {
 }
 
 // ==========================================
-// 6. RENDER & DRAG SELECT
+// 6. RENDER & DRAG SELECT (Google Drive UX)
 // ==========================================
 let isDragging = false;
-document.addEventListener('mousedown', () => isDragging = true);
+document.addEventListener('mousedown', (e) => { if(!e.target.closest('.select-check')) isDragging = true; });
 document.addEventListener('mouseup', () => isDragging = false);
 
 function renderItems(folders, files, isTrash) {
@@ -204,6 +207,7 @@ function renderItems(folders, files, isTrash) {
     }
     emptyEl.style.display='none';
     
+    // RENDER FOLDERS
     folders.forEach(f => {
         const d = document.createElement('div'); d.className = `folder-card ${selectedIds.has(f._id)?'selected':''}`; d.dataset.id = f._id;
         d.innerHTML = `
@@ -211,13 +215,19 @@ function renderItems(folders, files, isTrash) {
             <div class="item-name-box"><i class="fa-solid fa-folder text-amber-500"></i> <span>${f.name}</span></div>
             <div class="item-date-box">${formatDate(f.createdAt)}</div>
             <div class="item-size-box">--</div>`;
+            
+        // ⭐ FIXED UX logic for Folder
+        d.querySelector('.select-check').addEventListener('mousedown', (e) => { e.stopPropagation(); toggleSelect(f._id, d); });
         d.addEventListener('mouseenter', () => { if(isDragging) toggleSelect(f._id, d, true); });
-        d.addEventListener('mousedown', () => toggleSelect(f._id, d));
-        d.addEventListener('dblclick', () => { if(!isTrash) navigateTo(f._id, f.name); });
+        d.addEventListener('click', (e) => { 
+            if (selectedIds.size > 0) { toggleSelect(f._id, d); } 
+            else if(!isTrash) { navigateTo(f._id, f.name); } // Single click to open!
+        });
         d.addEventListener('contextmenu', e => { e.preventDefault(); ctxTarget = f; ctxTarget.type = 'folder'; showContextMenu(e); });
         listEl.appendChild(d);
     });
     
+    // RENDER FILES
     files.forEach(f => {
         const d = document.createElement('div'); d.className = `file-card ${selectedIds.has(f._id)?'selected':''}`; d.dataset.id = f._id;
         d.innerHTML = `
@@ -225,18 +235,19 @@ function renderItems(folders, files, isTrash) {
             <div class="item-name-box"><i class="fa-solid fa-file text-blue-400"></i> <span>${f.name}</span></div>
             <div class="item-date-box">${formatDate(f.uploadedAt)}</div>
             <div class="item-size-box">${f.size || '0 MB'}</div>`;
+            
+        // ⭐ FIXED UX logic for File
+        d.querySelector('.select-check').addEventListener('mousedown', (e) => { e.stopPropagation(); toggleSelect(f._id, d); });
         d.addEventListener('mouseenter', () => { if(isDragging) toggleSelect(f._id, d, true); });
-        d.addEventListener('mousedown', () => toggleSelect(f._id, d));
-        d.addEventListener('dblclick', () => { if(!isTrash) previewFile(f); });
+        d.addEventListener('click', (e) => { 
+            if (selectedIds.size > 0) { toggleSelect(f._id, d); } 
+            else if(!isTrash) { previewFile(f); } // Single click to open preview!
+        });
         d.addEventListener('contextmenu', e => { e.preventDefault(); ctxTarget = f; ctxTarget.type = 'file'; showContextMenu(e); });
         listEl.appendChild(d);
     });
 }
 
-function toggleView() { 
-    isGridView = !isGridView; 
-    sortFiles(); 
-}
 // ==========================================
 // 7. ADVANCED UPLOAD TASK CENTER
 // ==========================================
@@ -256,7 +267,6 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
         activeUploads.push({ id: taskId, controller });
         
         const el = document.createElement('div'); el.className = 'task-item'; el.id = `task-${taskId}`;
-        // Naya HTML detailed stats ke liye
         el.innerHTML = `
             <div class="task-header">
                 <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">${file.name}</span>
@@ -270,7 +280,7 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
         list.appendChild(el);
 
         const formData = new FormData(); formData.append('myFile', file); formData.append('folderId', currentFolderId);
-        const startTime = Date.now(); // Speed calculate karne ke liye time
+        const startTime = Date.now();
 
         try {
             const xhr = new XMLHttpRequest();
@@ -281,7 +291,6 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
                         const pct = Math.round((ev.loaded/ev.total)*100);
                         document.getElementById(`fill-${taskId}`).style.width = pct + '%';
                         
-                        // Live Stats calculation
                         const loadedMB = (ev.loaded / (1024*1024)).toFixed(1);
                         const totalMB = (ev.total / (1024*1024)).toFixed(1);
                         const timeElapsed = (Date.now() - startTime) / 1000;
@@ -297,11 +306,12 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
                 xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('td_token')}`);
                 xhr.send(formData);
             });
-            document.getElementById(`task-${taskId}`).innerHTML = `<span style="color:var(--success); font-size:0.8rem">✓ ${file.name} (Uploaded Successfully)</span>`;
+            document.getElementById(`task-${taskId}`).innerHTML = `<span style="color:var(--success); font-size:0.8rem">✓ ${file.name} (Uploaded)</span>`;
         } catch(err) { document.getElementById(`task-${taskId}`).innerHTML = `<span style="color:var(--danger); font-size:0.8rem">✗ ${file.name} (${err})</span>`; }
     }
     setTimeout(loadCurrentFolder, 1000);
 });
+
 function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == taskId); if(task) task.controller.abort(); }
 
 // ==========================================
@@ -325,7 +335,6 @@ function showContextMenu(e) {
 }
 
 function previewFile(file) {
-    // Note: Due to JWT security, simple URL preview for media needs token attached
     const tokenUrl = `/download/${file._id}?token=${localStorage.getItem('td_token')}`;
     const ext = file.name.split('.').pop().toLowerCase();
     const images = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
@@ -335,7 +344,7 @@ function previewFile(file) {
     
     if(images.includes(ext)) { contentBox.innerHTML = `<img src="${tokenUrl}" class="preview-media">`; } 
     else if(videos.includes(ext)) { contentBox.innerHTML = `<video controls autoplay class="preview-media"><source src="${tokenUrl}"></video>`; } 
-    else { contentBox.innerHTML = `<div class="text-center text-white"><i class="fa-solid fa-file-circle-exclamation text-6xl mb-4 text-slate-500"></i><p>Preview not supported here.</p><br><a href="${tokenUrl}" target="_blank" class="btn-primary mt-2 inline-flex w-auto px-6" style="text-decoration:none;">Download Instead</a></div>`; }
+    else { contentBox.innerHTML = `<div class="text-center text-white"><i class="fa-solid fa-file-circle-exclamation text-6xl mb-4 text-slate-500"></i><p>Preview not supported.</p><br><a href="${tokenUrl}" target="_blank" class="btn-primary mt-2 inline-flex w-auto px-6" style="text-decoration:none;">Download</a></div>`; }
     document.getElementById('previewModal').style.display = 'flex';
 }
 
@@ -361,7 +370,6 @@ function customConfirm(title, callback) {
     document.getElementById('confirmYesBtn').onclick = () => { document.getElementById('confirmModal').style.display = 'none'; callback(); };
 }
 
-// Single item actions
 function trashItem() { customConfirm('Move to Trash?', async () => { await fetch(`/${ctxTarget.type}s/${ctxTarget._id}/trash`, { method: 'DELETE', headers: getHeaders() }); loadCurrentFolder(); }); }
 function restoreItem() { fetch(`/${ctxTarget.type}s/${ctxTarget._id}/restore`, { method: 'PATCH', headers: getHeaders() }).then(() => loadTrash()); }
 function permanentDeleteItem() { customConfirm('Delete Forever?', async () => { await fetch(`/${ctxTarget.type}s/${ctxTarget._id}/permanent`, { method: 'DELETE', headers: getHeaders() }); loadTrash(); }); }
