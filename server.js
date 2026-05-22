@@ -130,12 +130,35 @@ app.post('/upload', checkAuth, upload.single('myFile'), async (req, res) => {
     }
 });
 
+// ── 100% SAFE DOWNLOAD & PREVIEW ENGINE ──
 app.get('/download/:id', checkAuth, async (req, res) => {
     try {
         const file = await FileModel.findById(req.params.id);
+        if (!file || !file.fileId) return res.send("File not found in database.");
+
+        // Telegram se file ka direct link mangwana
         const info = await axios.get(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${file.fileId}`);
-        res.redirect(`https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${info.data.result.file_path}`);
-    } catch (e) { res.status(500).send('Error'); }
+        const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${info.data.result.file_path}`;
+
+        // Seedha browser ko Telegram link par bhej dena (Fastest & Safest)
+        res.redirect(fileUrl);
+
+    } catch (e) {
+        console.error("Download Error:", e.response ? e.response.data : e.message);
+        
+        // Naya Error UI taaki pata chale ki real problem kya hai
+        const errorMsg = e.response && e.response.data && e.response.data.description 
+            ? e.response.data.description 
+            : e.message;
+            
+        res.status(500).send(`
+            <div style="font-family:sans-serif; text-align:center; margin-top:50px; background:#1e1e2a; color:white; padding:30px; border-radius:12px; max-width:400px; margin-left:auto; margin-right:auto; box-shadow:0 10px 20px rgba(0,0,0,0.5);">
+                <h2 style="color:#ff6584; margin-bottom:10px;">Download Failed ❌</h2>
+                <p style="color:#e8e8f0; margin-bottom:20px;"><b>Reason:</b> ${errorMsg}</p>
+                <button onclick="window.close()" style="padding:10px 20px; background:#6c63ff; color:white; border:none; border-radius:8px; cursor:pointer;">Close Window</button>
+            </div>
+        `);
+    }
 });
 
 app.get('/files', checkAuth, async (req, res) => {
