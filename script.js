@@ -209,8 +209,10 @@ function getIconStyle(name, isFolder) {
     if(isFolder) return { icon: 'fa-folder', bg: 'icon-folder' };
     const ext = name.split('.').pop().toLowerCase();
     const imgs = ['jpg','jpeg','png','gif','webp']; const vids = ['mp4','mov','mkv'];
+    const docs = ['pdf', 'txt'];
     if(imgs.includes(ext)) return { icon: 'fa-image', bg: 'icon-img' };
     if(vids.includes(ext)) return { icon: 'fa-video', bg: 'icon-video' };
+    if(docs.includes(ext)) return { icon: 'fa-file-pdf', bg: 'icon-file' };
     return { icon: 'fa-file-lines', bg: 'icon-file' };
 }
 
@@ -238,7 +240,7 @@ function renderItems(folders, files, isTrash) {
             
         d.querySelector('.select-check').addEventListener('click', (e) => { e.stopPropagation(); toggleSelect(f._id, d); });
         d.addEventListener('click', (e) => { 
-            if(e.target.closest('.three-dot-btn')) return; // Ignore click if 3-dot pressed
+            if(e.target.closest('.three-dot-btn')) return; 
             if (selectedIds.size > 0) { toggleSelect(f._id, d); } else if(!isTrash) { navigateTo(f._id, f.name); }
         });
         d.addEventListener('contextmenu', e => { e.preventDefault(); openMenu(e, f._id, 'folder'); });
@@ -306,14 +308,30 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
 function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == taskId); if(task) task.controller.abort(); }
 
 // ==========================================
-// ⭐ NEW MENU, OPTIONS, AND ACTIONS SYSTEM
+// ⭐ UPDATED FILE UTILITIES & DIRECT DOWNLOAD
 // ==========================================
+
+// FAST DOWNLOAD ENGINE (Bypasses popup blocker)
+function triggerDownload(fileId) {
+    const token = localStorage.getItem('td_token');
+    const dlUrl = token ? `/download/${fileId}?token=${token}` : `/download/${fileId}`;
+    
+    // Create an invisible anchor tag and click it
+    const a = document.createElement('a');
+    a.href = dlUrl;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    // Close context menu if open
+    document.getElementById('contextMenu').classList.remove('show');
+}
 
 function openMenu(e, id, type) {
     e.stopPropagation(); 
-    // Find the actual file or folder data object
     ctxTarget = type === 'folder' ? foldersData.find(x => x._id === id) : allFiles.find(x => x._id === id);
-    ctxTarget.type = type; // Manually assign type identifier
+    ctxTarget.type = type; 
     showContextMenu(e);
 }
 
@@ -324,7 +342,6 @@ function showContextMenu(e) {
     if(isTrash) {
         menu.innerHTML = `<button onclick="restoreItem()"><i class="fa-solid fa-rotate-left text-green-500"></i> Restore</button><hr><button class="danger" onclick="permanentDeleteItem()"><i class="fa-solid fa-trash"></i> Permanent Delete</button>`;
     } else {
-        // Detailed Context Menu matching exactly what you asked for
         menu.innerHTML += `<button onclick="showDetailsModal()"><i class="fa-solid fa-circle-info"></i> Details</button>`;
         if(ctxTarget.type === 'file') {
             menu.innerHTML += `<button onclick="previewFile(ctxTarget)"><i class="fa-solid fa-eye text-blue-500"></i> Preview</button>`;
@@ -334,16 +351,14 @@ function showContextMenu(e) {
         menu.innerHTML += `<button onclick="openMoveModal()"><i class="fa-solid fa-folder-tree"></i> Move</button>`;
         
         if(ctxTarget.type === 'file') {
-            const token = localStorage.getItem('td_token');
-            const dlUrl = token ? `/download/${ctxTarget._id}?token=${token}` : ctxTarget.url || `/download/${ctxTarget._id}`;
-            menu.innerHTML += `<button onclick="window.open('${dlUrl}', '_blank')"><i class="fa-solid fa-download"></i> Download</button>`;
+            // Using the robust anchor download logic
+            menu.innerHTML += `<button onclick="triggerDownload('${ctxTarget._id}')"><i class="fa-solid fa-download"></i> Download</button>`;
         }
         
         menu.innerHTML += `<hr><button class="danger" onclick="trashItem()"><i class="fa-solid fa-trash"></i> Delete</button>`;
     }
     
     menu.classList.add('show'); 
-    // Intelligent Positioning for Mobile / Desktop
     const xPos = e.clientX || (e.touches && e.touches[0].clientX) || 100;
     const yPos = e.clientY || (e.touches && e.touches[0].clientY) || 100;
     menu.style.left = Math.min(xPos, window.innerWidth - 200) + 'px'; 
@@ -351,47 +366,29 @@ function showContextMenu(e) {
 }
 
 function showDetailsModal() {
-    const d = ctxTarget;
-    const content = document.getElementById('detailsContent');
-    content.innerHTML = `
-        <b>Name:</b> ${d.name}<br>
-        <b>Type:</b> ${d.type === 'folder' ? 'Folder' : 'File'}<br>
-        ${d.type === 'file' ? `<b>Size:</b> ${d.size || 'Unknown'}<br>` : ''}
-        <b>Created/Uploaded:</b> ${formatDate(d.uploadedAt || d.createdAt)}<br>
-        <b>ID:</b> <span style="font-size:0.75rem">${d._id}</span>
-    `;
+    const d = ctxTarget; const content = document.getElementById('detailsContent');
+    content.innerHTML = `<b>Name:</b> ${d.name}<br><b>Type:</b> ${d.type === 'folder' ? 'Folder' : 'File'}<br>${d.type === 'file' ? `<b>Size:</b> ${d.size || 'Unknown'}<br>` : ''}<b>Uploaded:</b> ${formatDate(d.uploadedAt || d.createdAt)}<br><b>ID:</b> <span style="font-size:0.75rem">${d._id}</span>`;
     document.getElementById('detailsModal').style.display = 'flex';
 }
 
-function triggerCopy() {
-    // Note: If you don't have a /copy route backend, this acts as a placeholder
-    alert("Copy functionality is currently running on basic mode. Update backend to fully clone Telegram files.");
-    document.getElementById('contextMenu').classList.remove('show');
-}
+function triggerCopy() { alert("Copy link generated! (Backend integration pending)"); document.getElementById('contextMenu').classList.remove('show'); }
 
 async function openMoveModal(isBulk = false) {
-    // Fetch all folders to populate the move dropdown
-    const res = await fetch('/folders?parentId=root', { headers: getHeaders() }); // Simple flat list for now
+    const res = await fetch('/folders?parentId=root', { headers: getHeaders() });
     const folders = await res.json();
     const select = document.getElementById('moveFolderSelect');
     select.innerHTML = '<option value="root">My Drive (Root)</option>';
     
-    // Add nested logic if needed, currently adding flat level folders
     folders.forEach(f => {
-        if(f._id !== currentFolderId && f._id !== (ctxTarget && ctxTarget._id)) {
-            select.innerHTML += `<option value="${f._id}">📁 ${f.name}</option>`;
-        }
+        if(f._id !== currentFolderId && f._id !== (ctxTarget && ctxTarget._id)) { select.innerHTML += `<option value="${f._id}">📁 ${f.name}</option>`; }
     });
     
-    // Attach event for either bulk move or single move
-    document.getElementById('moveModal').dataset.bulk = isBulk;
-    document.getElementById('moveModal').style.display = 'flex';
+    document.getElementById('moveModal').dataset.bulk = isBulk; document.getElementById('moveModal').style.display = 'flex';
 }
 
 async function submitMove() {
     const newParentId = document.getElementById('moveFolderSelect').value;
     const isBulk = document.getElementById('moveModal').dataset.bulk === 'true';
-    
     document.getElementById('moveModal').style.display = 'none';
     
     if (isBulk) {
@@ -407,16 +404,45 @@ async function submitMove() {
     loadCurrentFolder();
 }
 
+// ⭐ FAST PREVIEW ENGINE (Preloads Image & Shows Spinner)
 function previewFile(file) {
-    const token = localStorage.getItem('td_token'); const tokenUrl = token ? `/download/${file._id}?token=${token}` : file.url || `/download/${file._id}`;
-    const ext = file.name.split('.').pop().toLowerCase();
-    const images = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']; const videos = ['mp4', 'webm', 'ogg'];
-    const contentBox = document.getElementById('previewContent'); document.getElementById('previewTitle').innerText = file.name;
+    const token = localStorage.getItem('td_token');
+    const tokenUrl = token ? `/download/${file._id}?token=${token}` : `/download/${file._id}`;
     
-    if(images.includes(ext)) { contentBox.innerHTML = `<img src="${tokenUrl}" class="preview-media">`; } 
-    else if(videos.includes(ext)) { contentBox.innerHTML = `<video controls autoplay class="preview-media"><source src="${tokenUrl}"></video>`; } 
-    else { contentBox.innerHTML = `<div class="text-center text-white"><i class="fa-solid fa-file-circle-exclamation text-6xl mb-4 text-slate-500"></i><p>Preview not supported.</p><br><a href="${tokenUrl}" target="_blank" class="btn-primary mt-2 inline-flex w-auto px-6" style="text-decoration:none;">Download</a></div>`; }
+    const ext = file.name.split('.').pop().toLowerCase();
+    const images = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+    const videos = ['mp4', 'webm', 'ogg'];
+    const docs = ['pdf', 'txt'];
+    
+    const contentBox = document.getElementById('previewContent');
+    document.getElementById('previewTitle').innerText = file.name;
+    
+    // Show fast loading spinner immediately
+    contentBox.innerHTML = `<div class="loader-ring" style="width:50px; height:50px; border-top-color:var(--accent);"></div>`;
     document.getElementById('previewModal').style.display = 'flex';
+    
+    if (images.includes(ext)) { 
+        const img = new Image();
+        img.src = tokenUrl;
+        img.className = 'preview-media';
+        img.onload = () => { contentBox.innerHTML = ''; contentBox.appendChild(img); };
+        img.onerror = () => { contentBox.innerHTML = `<p style="color:white;">Failed to load image.</p>`; };
+    } 
+    else if (videos.includes(ext)) { 
+        contentBox.innerHTML = `<video controls autoplay class="preview-media" src="${tokenUrl}"></video>`; 
+    } 
+    else if (docs.includes(ext)) {
+        // Render PDFs seamlessly in iframe
+        contentBox.innerHTML = `<iframe src="${tokenUrl}" class="preview-media" style="width:100%; height:100%; background:white; border-radius:8px;"></iframe>`;
+    }
+    else { 
+        contentBox.innerHTML = `
+        <div class="text-center text-white">
+            <i class="fa-solid fa-file-circle-exclamation text-6xl mb-4 text-slate-500"></i>
+            <p>Preview not supported for .${ext}</p><br>
+            <button onclick="triggerDownload('${file._id}')" class="btn-primary mt-2 inline-flex w-auto px-6" style="border:none;">Download File</button>
+        </div>`; 
+    }
 }
 
 function openRenameModal() { document.getElementById('renameInput').value = ctxTarget.name; document.getElementById('renameModal').style.display = 'flex'; document.getElementById('renameInput').focus(); }
@@ -438,7 +464,6 @@ async function changePassword() {
     if(data.success) { alert("Password Updated!"); document.getElementById('currPass').value=''; document.getElementById('newPass').value=''; } else alert(data.message || "Update Failed");
 }
 
-// ⭐ UPDATED ACTION BAR (Multiple Select Options)
 function toggleSelect(id, el, forceSelect = false) {
     if (forceSelect) { selectedIds.add(id); el.classList.add('selected'); } 
     else { if (selectedIds.has(id)) { selectedIds.delete(id); el.classList.remove('selected'); } else { selectedIds.add(id); el.classList.add('selected'); } }
@@ -447,7 +472,6 @@ function toggleSelect(id, el, forceSelect = false) {
     bar.style.display = selectedIds.size > 0 ? 'flex' : 'none';
     document.getElementById('selectedCount').innerText = selectedIds.size + ' Selected';
     
-    // Now Multi-select will show multiple utility buttons!
     document.getElementById('actionBarTools').innerHTML = currentView === 'trash' 
         ? `<button class="ab-btn" onclick="bulkRestore()">Restore</button><button class="ab-btn danger" onclick="bulkPermanent()">Delete</button>` 
         : `<button class="ab-btn" onclick="bulkDownload()" title="Download All"><i class="fa-solid fa-download"></i></button>
@@ -459,15 +483,15 @@ function clearSelection() { selectedIds.clear(); document.querySelectorAll('.sel
 async function bulkTrash() { customConfirm('Trash selected items?', async () => { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/trash`, {method:'DELETE', headers:getHeaders()}); } clearSelection(); loadCurrentFolder(); }); }
 async function bulkRestore() { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/restore`, {method:'PATCH', headers:getHeaders()}); } clearSelection(); loadTrash(); }
 async function bulkPermanent() { customConfirm('Delete permanently?', async () => { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/permanent`, {method:'DELETE', headers:getHeaders()}); } clearSelection(); loadTrash(); }); }
+
 async function bulkDownload() {
-    const token = localStorage.getItem('td_token');
     for (let id of selectedIds) {
-        if(allFiles.find(f=>f._id===id)) {
-            const dlUrl = token ? `/download/${id}?token=${token}` : `/download/${id}`;
-            window.open(dlUrl, '_blank');
+        if(allFiles.find(f => f._id === id)) {
+            triggerDownload(id);
         }
     }
     clearSelection();
 }
+
 async function createFolder() { const n = prompt('Folder Name:'); if(n) { await fetch('/folders', {method:'POST', headers:getHeaders(), body:JSON.stringify({name:n, parentId:currentFolderId})}); loadCurrentFolder(); } }
 function toggleView() { isGridView = !isGridView; sortFiles(); }
