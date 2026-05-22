@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>TeleDrive</title>
-<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0f0f13" id="themeColor">
+<title>TeleDrive Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -16,19 +14,17 @@
 
 <div id="loginScreen" class="login-screen" style="display:none">
   <div class="login-card">
-    <div class="login-logo"><i class="fa-solid fa-cloud text-3xl"></i></div>
+    <div class="login-logo"><i class="fa-solid fa-cloud-arrow-up text-xl"></i></div>
     <h1>TeleDrive</h1><p class="login-sub">Secure Login</p>
     <div id="step1">
-      <div class="input-group"><input type="text" id="usernameInput" placeholder="Username" autocomplete="off"></div>
-      <div class="input-group pass-wrap"><input type="password" id="passwordInput" placeholder="Password"><button class="eye-btn" onclick="togglePass()"><i class="fa-solid fa-eye" id="eyeIcon"></i></button></div>
+      <div class="input-group"><label>Username</label><input type="text" id="usernameInput" autocomplete="off"></div>
+      <div class="input-group"><label>Password</label><div class="pass-wrap"><input type="password" id="passwordInput"><button class="eye-btn" onclick="togglePass('passwordInput','eyeIcon')"><i class="fa-solid fa-eye" id="eyeIcon"></i></button></div></div>
       <button class="btn-primary" id="loginBtn" onclick="requestOTP()">Continue</button>
       <div class="login-error" id="loginError"></div>
     </div>
     <div id="step2" style="display:none">
-      <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Enter OTP sent to Telegram</p>
       <div class="otp-inputs">
-        <input class="otp-box" type="text" maxlength="1" inputmode="numeric"><input class="otp-box" type="text" maxlength="1" inputmode="numeric"><input class="otp-box" type="text" maxlength="1" inputmode="numeric">
-        <input class="otp-box" type="text" maxlength="1" inputmode="numeric"><input class="otp-box" type="text" maxlength="1" inputmode="numeric"><input class="otp-box" type="text" maxlength="1" inputmode="numeric">
+        <input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1">
       </div>
       <button class="btn-primary" onclick="verifyOTP()">Verify</button>
       <div class="login-error" id="otpError"></div>
@@ -38,53 +34,88 @@
 
 <div id="driveContent" style="display:none">
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo"><i class="fa-solid fa-cloud text-blue-500"></i><span>TeleDrive</span></div>
+    <div class="sidebar-header">
+        <div class="sidebar-logo"><i class="fa-solid fa-shield-halved text-blue-500"></i><span>TeleDrive</span></div>
+        <button class="menu-close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
     <nav class="sidebar-nav">
-      <a class="nav-item active" id="navDrive" onclick="switchView('drive')"><i class="fa-solid fa-folder"></i> Browse</a>
-      <a class="nav-item text-red-400" id="navTrash" onclick="switchView('trash')"><i class="fa-solid fa-trash-can"></i> Recently Deleted</a>
+      <a class="nav-item active" id="navDrive" onclick="switchView('drive')"><i class="fa-solid fa-house"></i> My Drive</a>
+      <a class="nav-item" onclick="toggleSearchRow()"><i class="fa-solid fa-magnifying-glass"></i> Search Files</a>
+      <a class="nav-item text-red-400" id="navTrash" onclick="switchView('trash')"><i class="fa-solid fa-trash-can"></i> Trash Bin</a>
+      <a class="nav-item" id="navSettings" onclick="switchView('settings')"><i class="fa-solid fa-gear"></i> Settings</a>
     </nav>
-    <div class="sidebar-bottom"><button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button></div>
+    <div class="sidebar-bottom">
+      <button class="theme-toggle-btn" onclick="toggleTheme()"><span id="themeIconSidebar">🌙</span> Mode</button>
+      <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </div>
   </aside>
 
-  <main class="main-content">
-    <div class="ios-header">
-      <div class="ios-header-top">
-        <div class="ios-back" id="backBtn" onclick="navigateUp()" style="visibility:hidden;"><i class="fa-solid fa-chevron-left"></i> Back</div>
-        <div class="ios-actions">
-          <label for="filePicker" class="ios-icon-btn"><i class="fa-solid fa-plus"></i></label>
-          <button class="ios-icon-btn" onclick="createFolder()"><i class="fa-solid fa-folder-plus"></i></button>
-          <button class="ios-icon-btn" onclick="toggleView()"><i class="fa-solid fa-ellipsis-circle"></i></button>
-        </div>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <main class="main-content" id="mainArea">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="menuToggleBtn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+        <div class="breadcrumb" id="breadcrumb">My Drive</div>
       </div>
-      <h1 class="ios-title" id="iosTitle">On My Drive</h1>
-      <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="searchInput" placeholder="Search" oninput="searchFiles()"></div>
+      <div class="topbar-actions">
+        <button class="icon-btn" style="position:relative" onclick="toggleUploadPanel()">
+            <i class="fa-solid fa-bell"></i><span id="taskBadge" style="display:none" class="badge">0</span>
+        </button>
+        <select id="sortSelect" onchange="sortFiles()" class="sort-select">
+            <option value="date-desc">Newest First</option>
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="size-desc">Size (Large)</option>
+        </select>
+        <button class="icon-btn" onclick="toggleView()"><i class="fa-solid fa-table-cells-large"></i></button>
+      </div>
     </div>
 
+    <div class="task-panel" id="taskPanel" style="display:none;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; align-items:center;">
+            <h4 style="font-size:0.9rem;">Upload Status</h4>
+            <button class="btn-ghost" style="padding:4px 8px; font-size:0.7rem; width:auto; margin:0;" onclick="cancelAllUploads()">Cancel All</button>
+        </div>
+        <div id="uploadTasksList"></div>
+    </div>
+
+    <div class="search-row" id="searchRow" style="display:none">
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Search file name here..." oninput="searchFiles()">
+            <button onclick="toggleSearchRow()">✕</button>
+        </div>
+    </div>
+    
+    <div class="desktop-toolbar" id="mainToolbar">
+      <button class="btn-new-folder" onclick="createFolder()"><i class="fa-solid fa-folder-plus text-amber-500"></i> New Folder</button>
+      <label class="btn-upload" for="filePicker"><i class="fa-solid fa-cloud-arrow-up"></i> Upload File</label>
+    </div>
     <input type="file" id="filePicker" style="display:none" multiple>
-    <div class="upload-queue" id="uploadQueue" style="display:none"></div>
 
     <div class="file-area">
-      <div class="empty-state" id="emptyState" style="display:none"><i class="fa-solid fa-folder-open text-5xl"></i><p>No Files</p></div>
+      <div class="empty-state" id="emptyState" style="display:none"><i id="emptyIcon" class="fa-solid fa-folder-open text-5xl"></i><p id="emptyTitle">Empty Folder</p></div>
       <div class="file-grid list-view" id="fileList"></div>
+    </div>
+
+    <div id="settingsArea" style="display:none; max-width:400px; width:100%; margin:20px auto; background:var(--surface2); padding:24px; border-radius:16px; border:1px solid var(--border);">
+        <h3 style="margin-bottom:20px; font-family:var(--font-head);"><i class="fa-solid fa-lock text-accent"></i> Reset Password</h3>
+        <div class="input-group"><label>Current Password</label><input type="password" id="currPass"></div>
+        <div class="input-group"><label>New Password</label><input type="password" id="newPass"></div>
+        <button class="btn-primary" onclick="changePassword()">Update Secret Password</button>
     </div>
   </main>
 
-  <div class="bottom-nav">
-    <div class="nav-tab" onclick="alert('Recents coming soon!')"><i class="fa-regular fa-clock"></i><span>Recents</span></div>
-    <div class="nav-tab" onclick="switchView('trash')"><i class="fa-regular fa-trash-can"></i><span>Deleted</span></div>
-    <div class="nav-tab active" onclick="switchView('drive')"><i class="fa-regular fa-folder"></i><span>Browse</span></div>
-  </div>
-
-  <div class="action-bar" id="actionBar" style="display:none">
-    <div class="ab-left"><button onclick="clearSelection()">Done</button></div>
-    <div class="ab-center" id="selectedCount">1 Item</div>
-    <div class="ab-right" id="actionBarTools"></div>
+  <div class="floating-action-bar" id="actionBar" style="display:none">
+    <div style="display:flex; align-items:center; gap:12px;"><button onclick="clearSelection()" class="ab-btn">✕</button><span id="selectedCount">0 Selected</span></div>
+    <div style="display:flex; gap:8px;" id="actionBarTools"></div>
   </div>
 </div>
 
 <div class="context-menu" id="contextMenu"></div>
-<div class="modal-overlay" id="renameModal" style="display:none;"><div class="modal"><h3>Rename</h3><input type="text" id="renameInput" class="rename-input"><div class="modal-actions"><button class="btn-ghost" onclick="document.getElementById('renameModal').style.display='none'">Cancel</button><button class="btn-primary" style="width:auto" onclick="submitRename()">Save</button></div></div></div>
-<div class="modal-overlay preview-overlay" id="previewModal" style="display:none;"><div class="ios-header-top" style="padding:20px; width:100%;"><button class="ios-back" onclick="document.getElementById('previewModal').style.display='none'">Done</button></div><div class="preview-content-box" id="previewContent"></div><div class="preview-title" id="previewTitle"></div></div>
+<div class="modal-overlay" id="confirmModal" style="display:none; z-index:9500;"><div class="modal text-center"><h3 id="confirmTitle">Are you sure?</h3><div style="display:flex; gap:12px; margin-top:20px;"><button class="btn-ghost flex-1" style="margin:0;" onclick="document.getElementById('confirmModal').style.display='none'">Cancel</button><button class="btn-primary flex-1 bg-red-500" style="background:var(--danger);" id="confirmYesBtn">Yes</button></div></div></div>
+<div class="modal-overlay" id="renameModal" style="display:none;"><div class="modal"><h3>Rename</h3><input type="text" id="renameInput" class="rename-input"><div class="modal-actions"><button class="btn-ghost" style="margin:0;" onclick="document.getElementById('renameModal').style.display='none'">Cancel</button><button class="btn-primary" style="width:auto; margin:0; padding:10px 20px;" onclick="submitRename()">Save</button></div></div></div>
+<div class="modal-overlay preview-overlay" id="previewModal" style="display:none;"><button class="preview-close" onclick="document.getElementById('previewModal').style.display='none'"><i class="fa-solid fa-xmark"></i></button><div class="preview-content-box" id="previewContent"></div><div class="preview-title" id="previewTitle"></div></div>
 
 <script src="script.js"></script>
 </body>
