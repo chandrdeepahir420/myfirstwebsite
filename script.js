@@ -28,15 +28,18 @@ function formatDate(dateString) {
     return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear().toString().slice(-2)}`;
 }
 
+// ==========================================
+// ⭐ INITIALIZATION & SWIPE SELECTION ENGINE
+// ==========================================
 window.addEventListener('DOMContentLoaded', () => {
     applyTheme(localStorage.getItem('td_theme') || 'dark');
     if (sessionStorage.getItem('td_auth') === 'true' || localStorage.getItem('td_token')) { 
-        // Token auth check fallback if you upgraded previously
         showDrive(); 
     } else { document.getElementById('loadingScreen').style.display='none'; document.getElementById('loginScreen').style.display='flex'; }
     
     setupOTPBoxes();
     
+    // Close panels when clicking outside
     document.addEventListener('click', (e) => { 
         if(!e.target.closest('.task-panel') && !e.target.closest('.fa-bell')) {
             const tp = document.getElementById('taskPanel'); if(tp) tp.style.display = 'none';
@@ -44,53 +47,81 @@ window.addEventListener('DOMContentLoaded', () => {
         const ctx = document.getElementById('contextMenu'); if(ctx) ctx.classList.remove('show'); 
     });
 
-    // ⭐ MOBILE TOUCH/SWIPE HOLD ENGINE FOR SELECTION
-    let touchStartEl = null;
-    let isTouchSelecting = false;
+    // ── HOLD & SWIPE LOGIC (Text Copy Blocked) ──
     const gridContainer = document.getElementById('fileList');
+    if (gridContainer) {
+        let isDragging = false;
+        let touchTimer = null;
+        let isTouchSelecting = false;
 
-    if(gridContainer) {
-        gridContainer.addEventListener('touchstart', (e) => {
-            const card = e.target.closest('.folder-card, .file-card');
+        // Desktop Mouse Drag
+        gridContainer.addEventListener('mousedown', (e) => {
+            const card = e.target.closest('.file-card, .folder-card');
             if (card && !e.target.closest('.select-check')) {
-                touchStartEl = card;
-                card.dataset.touchTimer = setTimeout(() => {
+                isDragging = true;
+                document.body.classList.add('is-selecting');
+            }
+        });
+        gridContainer.addEventListener('mouseover', (e) => {
+            if (!isDragging) return;
+            const card = e.target.closest('.file-card, .folder-card');
+            if (card && !selectedIds.has(card.dataset.id)) { toggleSelect(card.dataset.id, card, true); }
+        });
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            document.body.classList.remove('is-selecting');
+        });
+
+        // Mobile Touch Hold & Swipe
+        gridContainer.addEventListener('touchstart', (e) => {
+            const card = e.target.closest('.file-card, .folder-card');
+            if (card && !e.target.closest('.select-check')) {
+                touchTimer = setTimeout(() => {
                     isTouchSelecting = true;
+                    document.body.classList.add('is-selecting');
                     toggleSelect(card.dataset.id, card, true);
                     if (navigator.vibrate) navigator.vibrate(50);
-                }, 450);
+                }, 400); // 400ms hold time
             }
-        }, { passive: true });
+        }, { passive: false });
 
         gridContainer.addEventListener('touchmove', (e) => {
-            if (touchStartEl) clearTimeout(touchStartEl.dataset.touchTimer);
+            if (touchTimer) clearTimeout(touchTimer);
             if (isTouchSelecting) {
+                e.preventDefault(); // Blocks screen scroll & text selection
                 const touch = e.touches[0];
-                const currentTarget = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (currentTarget) {
-                    const card = currentTarget.closest('.folder-card, .file-card');
+                const currentEl = document.elementFromPoint(touch.clientX, touch.clientY);
+                if (currentEl) {
+                    const card = currentEl.closest('.file-card, .folder-card');
                     if (card && !selectedIds.has(card.dataset.id)) {
                         toggleSelect(card.dataset.id, card, true); 
                     }
                 }
             }
-        }, { passive: true });
+        }, { passive: false });
 
         gridContainer.addEventListener('touchend', () => {
-            if (touchStartEl) clearTimeout(touchStartEl.dataset.touchTimer);
-            isTouchSelecting = false; touchStartEl = null;
+            if (touchTimer) clearTimeout(touchTimer);
+            isTouchSelecting = false;
+            document.body.classList.remove('is-selecting');
+        });
+        gridContainer.addEventListener('touchcancel', () => {
+            if (touchTimer) clearTimeout(touchTimer);
+            isTouchSelecting = false;
+            document.body.classList.remove('is-selecting');
         });
     }
 });
 
+// ==========================================
+// UTILITIES & AUTH
+// ==========================================
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
     const menuBtn = document.getElementById('menuToggleBtn').querySelector('i');
-    
     sidebar.classList.toggle('open');
     overlay.classList.toggle('show');
-    
     if (sidebar.classList.contains('open')) { menuBtn.className = "fa-solid fa-xmark"; } 
     else { menuBtn.className = "fa-solid fa-bars"; }
 }
@@ -164,6 +195,9 @@ function hideLoader() { document.getElementById('loadingScreen').style.display='
 function showLogin() { document.getElementById('loginScreen').style.display='flex'; document.getElementById('driveContent').style.display='none'; }
 function showDrive() { hideLoader(); document.getElementById('loginScreen').style.display='none'; document.getElementById('driveContent').style.display='flex'; switchView('drive'); }
 
+// ==========================================
+// NAVIGATION & DATA LOADING
+// ==========================================
 function switchView(view) {
     currentView = view; clearSelection();
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -205,17 +239,15 @@ function navigateTo(folderId, folderName) {
 async function loadCurrentFolder() {
     if(currentView !== 'drive') return;
     try {
-        // Updated API fetch
         const token = localStorage.getItem('td_token');
         const headers = token ? getHeaders() : {};
-        
         const [fr, flr] = await Promise.all([ 
             fetch(`/files?folderId=${currentFolderId}`, {headers}), 
             fetch(`/folders?parentId=${currentFolderId}`, {headers}) 
         ]);
         allFiles = await fr.json(); foldersData = await flr.json();
         sortFiles(); 
-    } catch (e) { console.error(e); }
+    } catch (e) {}
 }
 
 async function loadTrash() {
@@ -237,7 +269,9 @@ function sortFiles(isTrash = false) {
     renderItems(foldersData, allFiles, isTrash || currentView === 'trash');
 }
 
-// ── iOS STYLE CARDS RENDERING ──
+// ==========================================
+// RENDERING (iOS Cards Style)
+// ==========================================
 function getIconStyle(name, isFolder) {
     if(isFolder) return { icon: 'fa-folder', bg: 'icon-folder' };
     const ext = name.split('.').pop().toLowerCase();
@@ -250,7 +284,6 @@ function getIconStyle(name, isFolder) {
 
 function renderItems(folders, files, isTrash) {
     const listEl = document.getElementById('fileList'), emptyEl = document.getElementById('emptyState');
-    
     listEl.className = `file-grid${isGridView ? '' : ' list-view'}`; listEl.innerHTML = '';
     
     if(!folders.length && !files.length) { 
@@ -302,6 +335,9 @@ function renderItems(folders, files, isTrash) {
     });
 }
 
+// ==========================================
+// UPLOAD & TASK MANAGER
+// ==========================================
 function toggleUploadPanel() { const p = document.getElementById('taskPanel'); p.style.display = p.style.display==='none' ? 'block' : 'none'; }
 function cancelAllUploads() { activeUploads.forEach(task => task.controller.abort()); document.getElementById('taskPanel').style.display='none'; }
 
@@ -365,9 +401,11 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
     }
     setTimeout(loadCurrentFolder, 1000);
 });
-
 function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == taskId); if(task) task.controller.abort(); }
 
+// ==========================================
+// CONTEXT MENU & MODALS
+// ==========================================
 function showContextMenu(e) {
     const menu = document.getElementById('contextMenu'); menu.innerHTML = '';
     const isTrash = currentView === 'trash';
@@ -376,7 +414,6 @@ function showContextMenu(e) {
     } else {
         if(ctxTarget.type === 'file') {
             menu.innerHTML += `<button onclick="previewFile(ctxTarget)"><i class="fa-solid fa-eye text-blue-500"></i> Preview</button>`;
-            
             const token = localStorage.getItem('td_token');
             const dlUrl = token ? `/download/${ctxTarget._id}?token=${token}` : ctxTarget.url || `/download/${ctxTarget._id}`;
             menu.innerHTML += `<button onclick="window.open('${dlUrl}', '_blank')"><i class="fa-solid fa-download"></i> Download</button>`;
@@ -438,22 +475,30 @@ async function changePassword() {
     else alert(data.message || "Update Failed");
 }
 
-function toggleSelect(id, el, force = false) {
-    if(force) { selectedIds.add(id); el.classList.add('selected'); }
-    else if(selectedIds.has(id)) { selectedIds.delete(id); el.classList.remove('selected'); }
-    else { selectedIds.add(id); el.classList.add('selected'); }
+// ==========================================
+// ⭐ SELECTION LOGIC (`toggleSelect` yahan hai)
+// ==========================================
+function toggleSelect(id, el, forceSelect = false) {
+    if (forceSelect) {
+        selectedIds.add(id); 
+        el.classList.add('selected');
+    } else {
+        if (selectedIds.has(id)) { selectedIds.delete(id); el.classList.remove('selected'); } 
+        else { selectedIds.add(id); el.classList.add('selected'); }
+    }
     
+    // Update Action Bar
     const bar = document.getElementById('actionBar');
     bar.style.display = selectedIds.size > 0 ? 'flex' : 'none';
     document.getElementById('selectedCount').innerText = selectedIds.size + ' Selected';
-    document.getElementById('actionBarTools').innerHTML = currentView === 'trash' ? `<button class="ab-btn" onclick="bulkRestore()">Restore</button><button class="ab-btn danger" onclick="bulkPermanent()">Delete</button>` : `<button class="ab-btn danger" onclick="bulkTrash()"><i class="fa-solid fa-trash"></i></button>`;
+    document.getElementById('actionBarTools').innerHTML = currentView === 'trash' 
+        ? `<button class="ab-btn" onclick="bulkRestore()">Restore</button><button class="ab-btn danger" onclick="bulkPermanent()">Delete</button>` 
+        : `<button class="ab-btn danger" onclick="bulkTrash()"><i class="fa-solid fa-trash"></i></button>`;
 }
 
 function clearSelection() { selectedIds.clear(); document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected')); document.getElementById('actionBar').style.display='none'; }
-
 async function bulkTrash() { customConfirm('Trash selected items?', async () => { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/trash`, {method:'DELETE', headers:getHeaders()}); } clearSelection(); loadCurrentFolder(); }); }
 async function bulkRestore() { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/restore`, {method:'PATCH', headers:getHeaders()}); } clearSelection(); loadTrash(); }
 async function bulkPermanent() { customConfirm('Delete permanently?', async () => { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/permanent`, {method:'DELETE', headers:getHeaders()}); } clearSelection(); loadTrash(); }); }
-
 async function createFolder() { const n = prompt('Folder Name:'); if(n) { await fetch('/folders', {method:'POST', headers:getHeaders(), body:JSON.stringify({name:n, parentId:currentFolderId})}); loadCurrentFolder(); } }
 function toggleView() { isGridView = !isGridView; sortFiles(); }
