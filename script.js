@@ -8,7 +8,14 @@ function toggleTheme() {
     isDark = !isDark; const t = isDark ? 'dark' : 'light'; 
     applyTheme(t); localStorage.setItem('td_theme', t); 
 }
-
+// Register Service Worker for Caching
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker Registered! Files will now cache.'))
+            .catch(err => console.log('SW Registration Failed:', err));
+    });
+}
 let currentFolderId = 'root';
 let folderStack = [];
 let isGridView = false; 
