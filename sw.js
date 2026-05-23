@@ -13,7 +13,7 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('fetch', (e) => {
   // Sirf files aur preview images ko cache karein
-  if (e.request.url.includes('/download/') || e.request.url.includes('api.telegram.org')) {
+  if (e.request.url.includes('/download/') && e.request.headers.get('content-length') < 20 * 1024 * 1024) {
     e.respondWith(
       caches.match(e.request).then((response) => {
         return response || fetch(e.request).then((networkResponse) => {
