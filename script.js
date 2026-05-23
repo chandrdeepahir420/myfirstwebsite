@@ -1,21 +1,7 @@
+// ==========================================
+// 1. GLOBAL VARIABLES & THEME CONFIG
+// ==========================================
 let isDark = true;
-function applyTheme(t) {
-    isDark = t === 'dark'; document.body.className = t;
-    const icon2 = document.getElementById('themeIconSidebar');
-    if (icon2) icon2.textContent = isDark ? '🌙' : '☀️';
-}
-function toggleTheme() { 
-    isDark = !isDark; const t = isDark ? 'dark' : 'light'; 
-    applyTheme(t); localStorage.setItem('td_theme', t); 
-}
-// Register Service Worker for Caching
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Service Worker Registered! Files will now cache.'))
-            .catch(err => console.log('SW Registration Failed:', err));
-    });
-}
 let currentFolderId = 'root';
 let folderStack = [];
 let isGridView = false; 
@@ -25,12 +11,96 @@ let foldersData = [];
 let selectedIds = new Set();
 let currentView = 'drive';
 let activeUploads = []; 
+let currentPage = 1;
+let isLoading = false;
+let hasMore = true;
+
+function applyTheme(t) {
+    isDark = t === 'dark'; document.body.className = t;
+    const icon2 = document.getElementById('themeIconSidebar');
+    if (icon2) icon2.textContent = isDark ? '🌙' : '☀️';
+}
+function toggleTheme() { 
+    isDark = !isDark; const t = isDark ? 'dark' : 'light'; 
+    applyTheme(t); localStorage.setItem('td_theme', t); 
+}
+
+// Register Service Worker for Caching
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker Registered! Files will now cache.'))
+            .catch(err => console.log('SW Registration Failed:', err));
+    });
+}
 
 function formatDate(dateString) {
     if(!dateString) return '--';
     const d = new Date(dateString);
     return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear().toString().slice(-2)}`;
 }
+
+// ==========================================
+// 2. CORE FUNCTIONS (Data Loading)
+// ==========================================
+
+// FIX: Ye function pehle delete ho gaya tha, ab ise wapas add kar diya gaya hai.
+async function loadCurrentFolder() {
+    if(currentView !== 'drive') return;
+    
+    // Reset pagination
+    currentPage = 1;
+    hasMore = true;
+    allFiles = [];
+    
+    try {
+        const token = localStorage.getItem('td_token'); 
+        const headers = token ? getHeaders() : {};
+        
+        // Fetch Folders and First 100 Files
+        const [fr, flr] = await Promise.all([ 
+            fetch(`/files?folderId=${currentFolderId}&page=1&limit=100`, {headers}), 
+            fetch(`/folders?parentId=${currentFolderId}`, {headers}) 
+        ]);
+        
+        allFiles = await fr.json(); 
+        foldersData = await flr.json(); 
+        sortFiles(); 
+    } catch (e) {
+        console.error("Load Error:", e);
+    }
+}
+
+// Pagination API call (Load Next 100 items)
+async function loadMoreItems() {
+    if (isLoading || !hasMore) return;
+    isLoading = true;
+    
+    try {
+        const token = localStorage.getItem('td_token');
+        const res = await fetch(`/files?folderId=${currentFolderId}&page=${currentPage + 1}&limit=100`, { headers: token ? getHeaders() : {} });
+        const newFiles = await res.json();
+        
+        if (newFiles.length < 100) hasMore = false;
+        allFiles = [...allFiles, ...newFiles];
+        
+        renderItems([], newFiles, false); // Naye items append karo
+        currentPage++;
+    } catch(e) { console.error(e); }
+    isLoading = false;
+}
+
+async function loadTrash() {
+    try {
+        const headers = localStorage.getItem('td_token') ? getHeaders() : {};
+        const res = await fetch('/trash', {headers}); const data = await res.json();
+        allFiles = data.files; foldersData = data.folders; sortFiles(true);
+    } catch {}
+}
+
+// ==========================================
+// 3. INITIALIZATION (DOM Ready & Events)
+// ==========================================
 
 window.addEventListener('DOMContentLoaded', () => {
     applyTheme(localStorage.getItem('td_theme') || 'dark');
@@ -39,6 +109,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
     setupOTPBoxes();
     
+    // Click Events
     document.addEventListener('click', (e) => { 
         if(!e.target.closest('.task-panel') && !e.target.closest('.fa-bell')) { const tp = document.getElementById('taskPanel'); if(tp) tp.style.display = 'none'; }
         if(!e.target.closest('.context-menu') && !e.target.closest('.three-dot-btn')) { const ctx = document.getElementById('contextMenu'); if(ctx) ctx.classList.remove('show'); }
@@ -46,6 +117,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const gridContainer = document.getElementById('fileList');
     if (gridContainer) {
+        // FIX: Scroll Listener ko DOM Load hone ke baad safely attach kiya gaya hai
+        gridContainer.addEventListener('scroll', (e) => {
+            if (gridContainer.scrollTop + gridContainer.clientHeight >= gridContainer.scrollHeight - 100) {
+                loadMoreItems();
+            }
+        });
+
+        // Touch & Drag Selection Logic
         let isDragging = false; let touchTimer = null; let isTouchSelecting = false;
 
         gridContainer.addEventListener('mousedown', (e) => {
@@ -89,6 +168,10 @@ window.addEventListener('DOMContentLoaded', () => {
         gridContainer.addEventListener('touchcancel', () => { if (touchTimer) clearTimeout(touchTimer); isTouchSelecting = false; document.body.classList.remove('is-selecting'); });
     }
 });
+
+// ==========================================
+// 4. UI COMPONENTS & NAVIGATION
+// ==========================================
 
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -184,44 +267,9 @@ function navigateTo(folderId, folderName) {
     loadCurrentFolder();
 }
 
-let currentPage = 1;
-let isLoading = false;
-let hasMore = true;
-
-// Naya Load Function
-async function loadMoreItems() {
-    if (isLoading || !hasMore) return;
-    isLoading = true;
-    
-    // Pagination API call (Server ko batao sirf 100 items chahiye)
-    try {
-        const token = localStorage.getItem('td_token');
-        const res = await fetch(`/files?folderId=${currentFolderId}&page=${currentPage}&limit=100`, { headers: token ? getHeaders() : {} });
-        const newFiles = await res.json();
-        
-        if (newFiles.length < 100) hasMore = false;
-        allFiles = [...allFiles, ...newFiles];
-        
-        renderItems([], newFiles, false); // Naye 100 items append karo
-        currentPage++;
-    } catch(e) { console.error(e); }
-    isLoading = false;
-}
-
-// Scroll Event Listener (Jab user end par pahunche)
-document.getElementById('fileList').addEventListener('scroll', (e) => {
-    const list = e.target;
-    if (list.scrollTop + list.clientHeight >= list.scrollHeight - 100) {
-        loadMoreItems();
-    }
-});
-async function loadTrash() {
-    try {
-        const headers = localStorage.getItem('td_token') ? getHeaders() : {};
-        const res = await fetch('/trash', {headers}); const data = await res.json();
-        allFiles = data.files; foldersData = data.folders; sortFiles(true);
-    } catch {}
-}
+// ==========================================
+// 5. RENDERING & SORTING
+// ==========================================
 
 function sortFiles(isTrash = false) {
     const mode = document.getElementById('sortSelect')?.value || 'date-desc';
@@ -247,9 +295,11 @@ function getIconStyle(name, isFolder) {
 
 function renderItems(folders, files, isTrash) {
     const listEl = document.getElementById('fileList'), emptyEl = document.getElementById('emptyState');
-    listEl.className = `file-grid${isGridView ? '' : ' list-view'}`; listEl.innerHTML = '';
+    listEl.className = `file-grid${isGridView ? '' : ' list-view'}`; 
     
-    if(!folders.length && !files.length) { 
+    if (folders.length > 0) listEl.innerHTML = ''; // Pehli baar load par clear karo
+    
+    if(!folders.length && !files.length && allFiles.length === 0) { 
         emptyEl.style.display='flex'; document.getElementById('emptyIcon').className = isTrash ? 'fa-solid fa-trash-can text-5xl' : 'fa-solid fa-folder-open text-5xl text-slate-500'; document.getElementById('emptyTitle').innerText = isTrash ? 'Trash is empty' : 'No files here';
         return; 
     }
@@ -298,6 +348,12 @@ function renderItems(folders, files, isTrash) {
     });
 }
 
+function toggleView() { isGridView = !isGridView; listEl = document.getElementById('fileList'); listEl.innerHTML = ''; sortFiles(); }
+
+// ==========================================
+// 6. FILE UPLOADING
+// ==========================================
+
 function toggleUploadPanel() { const p = document.getElementById('taskPanel'); p.style.display = p.style.display==='none' ? 'block' : 'none'; }
 function cancelAllUploads() { activeUploads.forEach(task => task.controller.abort()); document.getElementById('taskPanel').style.display='none'; }
 
@@ -337,15 +393,13 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
 function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == taskId); if(task) task.controller.abort(); }
 
 // ==========================================
-// ⭐ UPDATED FILE UTILITIES & DIRECT DOWNLOAD
+// 7. FILE UTILITIES (Preview, Download, Context Menu)
 // ==========================================
 
-// FAST DOWNLOAD ENGINE (Bypasses popup blocker)
 function triggerDownload(fileId) {
     const token = localStorage.getItem('td_token');
     const dlUrl = token ? `/download/${fileId}?token=${token}` : `/download/${fileId}`;
     
-    // Create an invisible anchor tag and click it
     const a = document.createElement('a');
     a.href = dlUrl;
     a.style.display = 'none';
@@ -353,7 +407,6 @@ function triggerDownload(fileId) {
     a.click();
     document.body.removeChild(a);
     
-    // Close context menu if open
     document.getElementById('contextMenu').classList.remove('show');
 }
 
@@ -380,7 +433,6 @@ function showContextMenu(e) {
         menu.innerHTML += `<button onclick="openMoveModal()"><i class="fa-solid fa-folder-tree"></i> Move</button>`;
         
         if(ctxTarget.type === 'file') {
-            // Using the robust anchor download logic
             menu.innerHTML += `<button onclick="triggerDownload('${ctxTarget._id}')"><i class="fa-solid fa-download"></i> Download</button>`;
         }
         
@@ -433,7 +485,6 @@ async function submitMove() {
     loadCurrentFolder();
 }
 
-// ⭐ FAST PREVIEW ENGINE (Preloads Image & Shows Spinner)
 function previewFile(file) {
     const token = localStorage.getItem('td_token');
     const tokenUrl = token ? `/download/${file._id}?token=${token}` : `/download/${file._id}`;
@@ -446,7 +497,6 @@ function previewFile(file) {
     const contentBox = document.getElementById('previewContent');
     document.getElementById('previewTitle').innerText = file.name;
     
-    // Show fast loading spinner immediately
     contentBox.innerHTML = `<div class="loader-ring" style="width:50px; height:50px; border-top-color:var(--accent);"></div>`;
     document.getElementById('previewModal').style.display = 'flex';
     
@@ -461,7 +511,6 @@ function previewFile(file) {
         contentBox.innerHTML = `<video controls autoplay class="preview-media" src="${tokenUrl}"></video>`; 
     } 
     else if (docs.includes(ext)) {
-        // Render PDFs seamlessly in iframe
         contentBox.innerHTML = `<iframe src="${tokenUrl}" class="preview-media" style="width:100%; height:100%; background:white; border-radius:8px;"></iframe>`;
     }
     else { 
@@ -523,4 +572,3 @@ async function bulkDownload() {
 }
 
 async function createFolder() { const n = prompt('Folder Name:'); if(n) { await fetch('/folders', {method:'POST', headers:getHeaders(), body:JSON.stringify({name:n, parentId:currentFolderId})}); loadCurrentFolder(); } }
-function toggleView() { isGridView = !isGridView; sortFiles(); }
