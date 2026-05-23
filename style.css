@@ -156,3 +156,17 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
     transform: translateY(-3px);
     box-shadow: 0 6px 16px rgba(0,0,0,0.2);
 }
+/* iOS Photos style cards */
+.ios-item-icon {
+    width: 60px;
+    height: 60px;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.ios-item-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Image ko crop karke square mein fit karega */
+    aspect-ratio: 1 / 1;
+}
