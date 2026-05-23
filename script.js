@@ -329,9 +329,24 @@ function renderItems(folders, files, isTrash) {
     files.forEach(f => {
         const d = document.createElement('div'); d.className = `file-card ${selectedIds.has(f._id)?'selected':''}`; d.dataset.id = f._id;
         const style = getIconStyle(f.name, false);
+        
+        // ⭐ THUMBNAIL LOGIC START ⭐
+        const ext = f.name.split('.').pop().toLowerCase();
+        const images = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+        const token = localStorage.getItem('td_token');
+        
+        let mediaContent = `<i class="fa-solid ${style.icon}"></i>`; // Default Icon
+        
+        if (images.includes(ext)) {
+            // Images ke liye real thumbnail banega
+            // loading="lazy" server ko crash hone se bachayega
+            mediaContent = `<img src="/download/${f._id}?token=${token}" loading="lazy" alt="thumbnail" style="width:100%; height:100%; object-fit:cover;">`;
+        } 
+        // ⭐ THUMBNAIL LOGIC END ⭐
+
         d.innerHTML = `
             <div class="select-check">✓</div>
-            <div class="ios-item-icon ${style.bg}"><i class="fa-solid ${style.icon}"></i></div>
+            <div class="ios-item-icon ${style.bg}">${mediaContent}</div>
             <div class="item-details">
                 <div class="item-name">${f.name}</div>
                 <div class="item-meta">${formatDate(f.uploadedAt)} - ${f.size || '0 MB'}</div>
