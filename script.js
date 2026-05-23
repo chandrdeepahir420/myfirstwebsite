@@ -184,15 +184,37 @@ function navigateTo(folderId, folderName) {
     loadCurrentFolder();
 }
 
-async function loadCurrentFolder() {
-    if(currentView !== 'drive') return;
+let currentPage = 1;
+let isLoading = false;
+let hasMore = true;
+
+// Naya Load Function
+async function loadMoreItems() {
+    if (isLoading || !hasMore) return;
+    isLoading = true;
+    
+    // Pagination API call (Server ko batao sirf 100 items chahiye)
     try {
-        const token = localStorage.getItem('td_token'); const headers = token ? getHeaders() : {};
-        const [fr, flr] = await Promise.all([ fetch(`/files?folderId=${currentFolderId}`, {headers}), fetch(`/folders?parentId=${currentFolderId}`, {headers}) ]);
-        allFiles = await fr.json(); foldersData = await flr.json(); sortFiles(); 
-    } catch (e) {}
+        const token = localStorage.getItem('td_token');
+        const res = await fetch(`/files?folderId=${currentFolderId}&page=${currentPage}&limit=100`, { headers: token ? getHeaders() : {} });
+        const newFiles = await res.json();
+        
+        if (newFiles.length < 100) hasMore = false;
+        allFiles = [...allFiles, ...newFiles];
+        
+        renderItems([], newFiles, false); // Naye 100 items append karo
+        currentPage++;
+    } catch(e) { console.error(e); }
+    isLoading = false;
 }
 
+// Scroll Event Listener (Jab user end par pahunche)
+document.getElementById('fileList').addEventListener('scroll', (e) => {
+    const list = e.target;
+    if (list.scrollTop + list.clientHeight >= list.scrollHeight - 100) {
+        loadMoreItems();
+    }
+});
 async function loadTrash() {
     try {
         const headers = localStorage.getItem('td_token') ? getHeaders() : {};
