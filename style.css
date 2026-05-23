@@ -143,3 +143,16 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
 }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+/* ── PREMIUM HOVER EFFECT ── */
+.folder-card:hover, .file-card:hover {
+    background: rgba(108, 99, 255, 0.12) !important; /* Halka sa blue/purple tint */
+    border-radius: 10px !important;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Grid view ke liye thoda sa pop-up (zoom) effect */
+.file-grid:not(.list-view) .folder-card:hover, 
+.file-grid:not(.list-view) .file-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
