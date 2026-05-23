@@ -161,14 +161,33 @@ app.get('/download/:id', checkAuth, async (req, res) => {
     }
 });
 
-app.get('/files', checkAuth, async (req, res) => {
+app.get('/files', checkAuth, async (req, res) => { // checkAuth yahan rehna chahiye!
     try {
-        const filter = { folderId: req.query.folderId || 'root', isTrashed: { $ne: true } };
-        if(req.query.folderId === 'root') filter.$or = [{ folderId: 'root' }, { folderId: { $exists: false } }, { folderId: null }];
-        res.json(await FileModel.find(filter).sort({ uploadedAt: -1 }));
-    } catch (e) { res.status(500).json([]); }
-});
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 100;
+        const skip = (page - 1) * limit;
 
+        // Aapka purana filter logic (isTrashed wala) bhi zaroori hai, warna trash wali files bhi dikhengi
+        const filter = { 
+            folderId: req.query.folderId || 'root', 
+            isTrashed: { $ne: true } 
+        };
+        
+        // Root logic handle karna
+        if(req.query.folderId === 'root') {
+            filter.$or = [{ folderId: 'root' }, { folderId: { $exists: false } }, { folderId: null }];
+        }
+
+        const files = await FileModel.find(filter)
+                                     .sort({ uploadedAt: -1 })
+                                     .skip(skip)
+                                     .limit(limit);
+        
+        res.json(files);
+    } catch (e) {
+        res.status(500).json([]);
+    }
+});
 app.get('/folders', checkAuth, async (req, res) => {
     try {
         const filter = { parentId: req.query.parentId || 'root', isTrashed: { $ne: true } };
