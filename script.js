@@ -412,21 +412,20 @@ function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == tas
 // ==========================================
 
 // AFTER (fixed)
-function triggerDownload(fileId) {
+function triggerDownload(fileId, fileName) {
     const token = localStorage.getItem('td_token');
     const dlUrl = token ? `/download/${fileId}?token=${token}` : `/download/${fileId}`;
     
     const a = document.createElement('a');
     a.href = dlUrl;
-    a.setAttribute('download', '');   // ✅ This forces download instead of navigation
+    a.setAttribute('download', fileName || fileId); // ✅ Sets the correct filename with extension
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => document.body.removeChild(a), 100);  // ✅ Safer removal with slight delay
+    setTimeout(() => document.body.removeChild(a), 100);
     
     document.getElementById('contextMenu').classList.remove('show');
-}
-function openMenu(e, id, type) {
+}function openMenu(e, id, type) {
     e.stopPropagation(); 
     ctxTarget = type === 'folder' ? foldersData.find(x => x._id === id) : allFiles.find(x => x._id === id);
     ctxTarget.type = type; 
@@ -449,7 +448,7 @@ function showContextMenu(e) {
         menu.innerHTML += `<button onclick="openMoveModal()"><i class="fa-solid fa-folder-tree"></i> Move</button>`;
         
         if(ctxTarget.type === 'file') {
-            menu.innerHTML += `<button onclick="triggerDownload('${ctxTarget._id}')"><i class="fa-solid fa-download"></i> Download</button>`;
+            menu.innerHTML += `<button onclick="triggerDownload('${ctxTarget._id}', '${ctxTarget.name}')">...`;
         }
         
         menu.innerHTML += `<hr><button class="danger" onclick="trashItem()"><i class="fa-solid fa-trash"></i> Delete</button>`;
@@ -534,7 +533,7 @@ function previewFile(file) {
         <div class="text-center text-white">
             <i class="fa-solid fa-file-circle-exclamation text-6xl mb-4 text-slate-500"></i>
             <p>Preview not supported for .${ext}</p><br>
-            <button onclick="triggerDownload('${file._id}')" class="btn-primary mt-2 inline-flex w-auto px-6" style="border:none;">Download File</button>
+            <button onclick="triggerDownload('${file._id}', '${file.name}')">Download File</button><button onclick="triggerDownload('${file._id}')" class="btn-primary mt-2 inline-flex w-auto px-6" style="border:none;">Download File</button>
         </div>`; 
     }
 }
@@ -580,11 +579,11 @@ async function bulkPermanent() { customConfirm('Delete permanently?', async () =
 
 async function bulkDownload() {
     for (let id of selectedIds) {
-        if(allFiles.find(f => f._id === id)) {
-            triggerDownload(id);
+        const file = allFiles.find(f => f._id === id);
+        if(file) {
+            triggerDownload(file._id, file.name); // ✅ Pass filename here too
         }
     }
     clearSelection();
 }
-
 async function createFolder() { const n = prompt('Folder Name:'); if(n) { await fetch('/folders', {method:'POST', headers:getHeaders(), body:JSON.stringify({name:n, parentId:currentFolderId})}); loadCurrentFolder(); } }
