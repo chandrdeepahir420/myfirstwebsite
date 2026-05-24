@@ -47,6 +47,7 @@ function formatDate(dateString) {
 async function loadCurrentFolder() {
     if(currentView !== 'drive') return;
     
+    // Reset pagination
     currentPage = 1;
     hasMore = true;
     allFiles = [];
@@ -55,19 +56,21 @@ async function loadCurrentFolder() {
         const token = localStorage.getItem('td_token'); 
         const headers = token ? getHeaders() : {};
         
-        const [fr, flr] = await Promise.all([ 
+        // FOLDER aur FILES dono ko specific currentFolderId ke saath fetch karein
+        const [filesRes, foldersRes] = await Promise.all([ 
             fetch(`/files?folderId=${currentFolderId}&page=1&limit=100`, {headers}), 
             fetch(`/folders?parentId=${currentFolderId}`, {headers}) 
         ]);
         
-        allFiles = await fr.json(); 
-        foldersData = await flr.json(); 
-        sortFiles(); 
-    } catch (e) {
-        console.error("Load Error:", e);
+        allFiles = await filesRes.json(); 
+        foldersData = await foldersRes.json(); 
+        
+        // Render both
+        renderItems(foldersData, allFiles, false); 
+    } catch (e) { 
+        console.error("Load Error:", e); 
     }
 }
-
 async function loadMoreItems() {
     if (isLoading || !hasMore) return;
     isLoading = true;
