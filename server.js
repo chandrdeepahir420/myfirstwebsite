@@ -161,41 +161,49 @@ app.get('/download/:id', checkAuth, async (req, res) => {
     }
 });
 
-app.get('/files', checkAuth, async (req, res) => { // checkAuth yahan rehna chahiye!
+// GET Files with correct folder filtering
+app.get('/files', checkAuth, async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 100;
-        const skip = (page - 1) * limit;
-
-        // Aapka purana filter logic (isTrashed wala) bhi zaroori hai, warna trash wali files bhi dikhengi
+        const folderId = req.query.folderId || 'root';
+        
+        // Filter logic: sirf wo files dikhao jo us folderId ki hain
         const filter = { 
-            folderId: req.query.folderId || 'root', 
+            folderId: folderId, 
             isTrashed: { $ne: true } 
         };
         
-        // Root logic handle karna
-        if(req.query.folderId === 'root') {
+        // Root access handling
+        if(folderId === 'root') {
             filter.$or = [{ folderId: 'root' }, { folderId: { $exists: false } }, { folderId: null }];
         }
 
         const files = await FileModel.find(filter)
                                      .sort({ uploadedAt: -1 })
-                                     .skip(skip)
-                                     .limit(limit);
-        
+                                     .skip(parseInt(req.query.skip) || 0)
+                                     .limit(parseInt(req.query.limit) || 100);
         res.json(files);
-    } catch (e) {
-        res.status(500).json([]);
+    } catch (e) { 
+        res.status(500).json([]); 
     }
 });
+
+// GET Folders with correct parentId filtering
 app.get('/folders', checkAuth, async (req, res) => {
     try {
-        const filter = { parentId: req.query.parentId || 'root', isTrashed: { $ne: true } };
-        if (req.query.parentId === 'root') filter.$or = [{ parentId: 'root' }, { parentId: { $exists: false } }, { parentId: null }];
-        res.json(await FolderModel.find(filter).sort({ createdAt: -1 }));
-    } catch (e) { res.status(500).json([]); }
-});
+        const parentId = req.query.parentId || 'root';
+        
+        // Filter logic: sirf wo folders dikhao jinka parentId match kare
+        const filter = { 
+            parentId: parentId, 
+            isTrashed: { $ne: true } 
+        };
 
+        const folders = await FolderModel.find(filter);
+        res.json(folders);
+    } catch (e) { 
+        res.status(500).json([]); 
+    }
+});
 app.get('/files/all', checkAuth, async (req, res) => {
     try { res.json(await FileModel.find({ isTrashed: { $ne: true } })); } catch (e) { res.status(500).json([]); }
 });
