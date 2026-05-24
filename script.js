@@ -44,30 +44,30 @@ function formatDate(dateString) {
 // 2. CORE FUNCTIONS (Data Loading)
 // ==========================================
 
-// FIX: Ye function pehle delete ho gaya tha, ab ise wapas add kar diya gaya hai.
 async function loadCurrentFolder() {
     if(currentView !== 'drive') return;
+    
     currentPage = 1;
     hasMore = true;
-    // ✅ Don't clear allFiles here — let it update after fetch completes
+    allFiles = [];
+    
     try {
-        const token = localStorage.getItem('td_token');
+        const token = localStorage.getItem('td_token'); 
         const headers = token ? getHeaders() : {};
-
-        const [fr, flr] = await Promise.all([
-            fetch(`/files?folderId=${currentFolderId}&page=1&limit=100`, {headers}),
-            fetch(`/folders?parentId=${currentFolderId}`, {headers})
+        
+        const [fr, flr] = await Promise.all([ 
+            fetch(`/files?folderId=${currentFolderId}&page=1&limit=100`, {headers}), 
+            fetch(`/folders?parentId=${currentFolderId}`, {headers}) 
         ]);
-
-        allFiles = await fr.json();   // ✅ Only cleared/replaced after data is ready
-        foldersData = await flr.json();
-        sortFiles();
+        
+        allFiles = await fr.json(); 
+        foldersData = await flr.json(); 
+        sortFiles(); 
     } catch (e) {
         console.error("Load Error:", e);
     }
 }
 
-// Pagination API call (Load Next 100 items)
 async function loadMoreItems() {
     if (isLoading || !hasMore) return;
     isLoading = true;
@@ -80,7 +80,7 @@ async function loadMoreItems() {
         if (newFiles.length < 100) hasMore = false;
         allFiles = [...allFiles, ...newFiles];
         
-        renderItems([], newFiles, false); // Naye items append karo
+        renderItems([], newFiles, false); 
         currentPage++;
     } catch(e) { console.error(e); }
     isLoading = false;
@@ -105,7 +105,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
     setupOTPBoxes();
     
-    // Click Events
     document.addEventListener('click', (e) => { 
         if(!e.target.closest('.task-panel') && !e.target.closest('.fa-bell')) { const tp = document.getElementById('taskPanel'); if(tp) tp.style.display = 'none'; }
         if(!e.target.closest('.context-menu') && !e.target.closest('.three-dot-btn')) { const ctx = document.getElementById('contextMenu'); if(ctx) ctx.classList.remove('show'); }
@@ -113,14 +112,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const gridContainer = document.getElementById('fileList');
     if (gridContainer) {
-        // FIX: Scroll Listener ko DOM Load hone ke baad safely attach kiya gaya hai
         gridContainer.addEventListener('scroll', (e) => {
             if (gridContainer.scrollTop + gridContainer.clientHeight >= gridContainer.scrollHeight - 100) {
                 loadMoreItems();
             }
         });
 
-        // Touch & Drag Selection Logic
         let isDragging = false; let touchTimer = null; let isTouchSelecting = false;
 
         gridContainer.addEventListener('mousedown', (e) => {
@@ -293,7 +290,7 @@ function renderItems(folders, files, isTrash) {
     const listEl = document.getElementById('fileList'), emptyEl = document.getElementById('emptyState');
     listEl.className = `file-grid${isGridView ? '' : ' list-view'}`; 
     
-    if (folders.length > 0) listEl.innerHTML = ''; // Pehli baar load par clear karo
+    if (folders.length > 0) listEl.innerHTML = ''; 
     
     if(!folders.length && !files.length && allFiles.length === 0) { 
         emptyEl.style.display='flex'; document.getElementById('emptyIcon').className = isTrash ? 'fa-solid fa-trash-can text-5xl' : 'fa-solid fa-folder-open text-5xl text-slate-500'; document.getElementById('emptyTitle').innerText = isTrash ? 'Trash is empty' : 'No files here';
@@ -326,19 +323,15 @@ function renderItems(folders, files, isTrash) {
         const d = document.createElement('div'); d.className = `file-card ${selectedIds.has(f._id)?'selected':''}`; d.dataset.id = f._id;
         const style = getIconStyle(f.name, false);
         
-        // ⭐ THUMBNAIL LOGIC START ⭐
         const ext = f.name.split('.').pop().toLowerCase();
         const images = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
         const token = localStorage.getItem('td_token');
         
-        let mediaContent = `<i class="fa-solid ${style.icon}"></i>`; // Default Icon
+        let mediaContent = `<i class="fa-solid ${style.icon}"></i>`; 
         
         if (images.includes(ext)) {
-            // Images ke liye real thumbnail banega
-            // loading="lazy" server ko crash hone se bachayega
             mediaContent = `<img src="/download/${f._id}?token=${token}" loading="lazy" alt="thumbnail" style="width:100%; height:100%; object-fit:cover;">`;
         } 
-        // ⭐ THUMBNAIL LOGIC END ⭐
 
         d.innerHTML = `
             <div class="select-check">✓</div>
@@ -404,36 +397,51 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
 function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == taskId); if(task) task.controller.abort(); }
 
 // ==========================================
-// 7. FILE UTILITIES (Preview, Download, Context Menu)
+// 7. FILE UTILITIES & ROBUST DOWNLOAD ENGINE
 // ==========================================
 
-// AFTER (fixed)
-async function triggerDownload(fileId, fileName) {
+// FIX: upgraded download engine using blob generation to guarantee proper extensions and file names without errors.
+async function triggerDownload(fileId) {
+    const file = allFiles.find(f => f._id === fileId) || ctxTarget;
+    if (!file) return;
+
     const token = localStorage.getItem('td_token');
-
-    // ✅ If fileName is missing, fetch it fresh from server
-    if (!fileName) {
-        try {
-            const res = await fetch(`/files/${fileId}`, { headers: getHeaders() });
-            const data = await res.json();
-            fileName = data.name;
-        } catch (e) {
-            console.error("Could not fetch file info:", e);
-        }
-    }
-
     const dlUrl = token ? `/download/${fileId}?token=${token}` : `/download/${fileId}`;
-
-    const a = document.createElement('a');
-    a.href = dlUrl;
-    a.setAttribute('download', fileName || fileId);
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => document.body.removeChild(a), 100);
-
+    
     document.getElementById('contextMenu').classList.remove('show');
+    
+    try {
+        // Fetch raw binary blob from backend
+        const response = await fetch(dlUrl);
+        if (!response.ok) throw new Error("Download server error.");
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        // Form a virtual link to enforce accurate file name and extension
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name; // This protects your extension
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        
+        a.click();
+        
+        // Cleanup memory
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error("Download Failed:", error);
+        // Fallback option in case proxy fetch is blocked
+        const fallbackA = document.createElement('a');
+        fallbackA.href = dlUrl;
+        fallbackA.target = "_blank";
+        document.body.appendChild(fallbackA);
+        fallbackA.click();
+        document.body.removeChild(fallbackA);
+    }
 }
+
 function openMenu(e, id, type) {
     e.stopPropagation(); 
     ctxTarget = type === 'folder' ? foldersData.find(x => x._id === id) : allFiles.find(x => x._id === id);
@@ -457,7 +465,7 @@ function showContextMenu(e) {
         menu.innerHTML += `<button onclick="openMoveModal()"><i class="fa-solid fa-folder-tree"></i> Move</button>`;
         
         if(ctxTarget.type === 'file') {
-            menu.innerHTML += `<button onclick="triggerDownload('${ctxTarget._id}', '${ctxTarget.name}')">...`;
+            menu.innerHTML += `<button onclick="triggerDownload('${ctxTarget._id}')"><i class="fa-solid fa-download"></i> Download</button>`;
         }
         
         menu.innerHTML += `<hr><button class="danger" onclick="trashItem()"><i class="fa-solid fa-trash"></i> Delete</button>`;
@@ -542,7 +550,7 @@ function previewFile(file) {
         <div class="text-center text-white">
             <i class="fa-solid fa-file-circle-exclamation text-6xl mb-4 text-slate-500"></i>
             <p>Preview not supported for .${ext}</p><br>
-            <button onclick="triggerDownload('${file._id}', '${file.name}')">Download File</button><button onclick="triggerDownload('${file._id}')" class="btn-primary mt-2 inline-flex w-auto px-6" style="border:none;">Download File</button>
+            <button onclick="triggerDownload('${file._id}')" class="btn-primary mt-2 inline-flex w-auto px-6" style="border:none;">Download File</button>
         </div>`; 
     }
 }
@@ -588,11 +596,11 @@ async function bulkPermanent() { customConfirm('Delete permanently?', async () =
 
 async function bulkDownload() {
     for (let id of selectedIds) {
-        const file = allFiles.find(f => f._id === id);
-        if(file) {
-            triggerDownload(file._id, file.name); // ✅ Pass filename here too
+        if(allFiles.find(f => f._id === id)) {
+            triggerDownload(id);
         }
     }
     clearSelection();
 }
+
 async function createFolder() { const n = prompt('Folder Name:'); if(n) { await fetch('/folders', {method:'POST', headers:getHeaders(), body:JSON.stringify({name:n, parentId:currentFolderId})}); loadCurrentFolder(); } }
