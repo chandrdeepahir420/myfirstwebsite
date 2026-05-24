@@ -47,25 +47,21 @@ function formatDate(dateString) {
 // FIX: Ye function pehle delete ho gaya tha, ab ise wapas add kar diya gaya hai.
 async function loadCurrentFolder() {
     if(currentView !== 'drive') return;
-    
-    // Reset pagination
     currentPage = 1;
     hasMore = true;
-    allFiles = [];
-    
+    // ✅ Don't clear allFiles here — let it update after fetch completes
     try {
-        const token = localStorage.getItem('td_token'); 
+        const token = localStorage.getItem('td_token');
         const headers = token ? getHeaders() : {};
-        
-        // Fetch Folders and First 100 Files
-        const [fr, flr] = await Promise.all([ 
-            fetch(`/files?folderId=${currentFolderId}&page=1&limit=100`, {headers}), 
-            fetch(`/folders?parentId=${currentFolderId}`, {headers}) 
+
+        const [fr, flr] = await Promise.all([
+            fetch(`/files?folderId=${currentFolderId}&page=1&limit=100`, {headers}),
+            fetch(`/folders?parentId=${currentFolderId}`, {headers})
         ]);
-        
-        allFiles = await fr.json(); 
-        foldersData = await flr.json(); 
-        sortFiles(); 
+
+        allFiles = await fr.json();   // ✅ Only cleared/replaced after data is ready
+        foldersData = await flr.json();
+        sortFiles();
     } catch (e) {
         console.error("Load Error:", e);
     }
@@ -412,20 +408,33 @@ function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == tas
 // ==========================================
 
 // AFTER (fixed)
-function triggerDownload(fileId, fileName) {
+async function triggerDownload(fileId, fileName) {
     const token = localStorage.getItem('td_token');
+
+    // ✅ If fileName is missing, fetch it fresh from server
+    if (!fileName) {
+        try {
+            const res = await fetch(`/files/${fileId}`, { headers: getHeaders() });
+            const data = await res.json();
+            fileName = data.name;
+        } catch (e) {
+            console.error("Could not fetch file info:", e);
+        }
+    }
+
     const dlUrl = token ? `/download/${fileId}?token=${token}` : `/download/${fileId}`;
-    
+
     const a = document.createElement('a');
     a.href = dlUrl;
-    a.setAttribute('download', fileName || fileId); // ✅ Sets the correct filename with extension
+    a.setAttribute('download', fileName || fileId);
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     setTimeout(() => document.body.removeChild(a), 100);
-    
+
     document.getElementById('contextMenu').classList.remove('show');
-}function openMenu(e, id, type) {
+}
+function openMenu(e, id, type) {
     e.stopPropagation(); 
     ctxTarget = type === 'folder' ? foldersData.find(x => x._id === id) : allFiles.find(x => x._id === id);
     ctxTarget.type = type; 
