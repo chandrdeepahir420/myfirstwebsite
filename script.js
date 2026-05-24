@@ -411,20 +411,21 @@ function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == tas
 // 7. FILE UTILITIES (Preview, Download, Context Menu)
 // ==========================================
 
+// AFTER (fixed)
 function triggerDownload(fileId) {
     const token = localStorage.getItem('td_token');
     const dlUrl = token ? `/download/${fileId}?token=${token}` : `/download/${fileId}`;
     
     const a = document.createElement('a');
     a.href = dlUrl;
+    a.setAttribute('download', '');   // ✅ This forces download instead of navigation
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    setTimeout(() => document.body.removeChild(a), 100);  // ✅ Safer removal with slight delay
     
     document.getElementById('contextMenu').classList.remove('show');
 }
-
 function openMenu(e, id, type) {
     e.stopPropagation(); 
     ctxTarget = type === 'folder' ? foldersData.find(x => x._id === id) : allFiles.find(x => x._id === id);
