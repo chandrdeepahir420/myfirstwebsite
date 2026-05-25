@@ -29,7 +29,14 @@
     </div>
   </div>
 </div>
-
+<div class="mobile-bottom-bar">
+    <button onclick="createFolder()">
+        <i class="fa-solid fa-folder-plus"></i> New Folder
+    </button>
+    <button onclick="document.getElementById('filePicker').click()">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
+    </button>
+</div>
 <div id="driveContent" style="display:none">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header"><div class="sidebar-logo"><i class="fa-solid fa-shield-halved text-blue-500"></i><span>TeleDrive</span></div><button class="menu-close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button></div>
@@ -103,14 +110,6 @@
         <div id="detailsContent" style="color:var(--text-muted); font-size:0.95rem; line-height:1.8;"></div>
         <button class="btn-primary" style="margin-top:20px;" onclick="document.getElementById('detailsModal').style.display='none'">Close</button>
     </div>
-</div>
-<div class="mobile-bottom-bar">
-    <button onclick="createFolder()">
-        <i class="fa-solid fa-folder-plus"></i> New Folder
-    </button>
-    <button onclick="document.getElementById('filePicker').click()">
-        <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
-    </button>
 </div>
 <script src="script.js"></script>
 </body>
