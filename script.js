@@ -768,3 +768,37 @@ async function bulkDownload() {
 }
 
 async function createFolder() { const n = prompt('Folder Name:'); if(n) { await fetch('/folders', {method:'POST', headers:getHeaders(), body:JSON.stringify({name:n, parentId:currentFolderId})}); loadCurrentFolder(); } }
+// ==========================================
+// ⭐ IPHONE-STYLE SWIPE TO GO BACK ⭐
+// ==========================================
+
+let touchStartX = 0;
+
+// Screen par touch shuru hone ki position pakdo
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].clientX;
+}, { passive: true });
+
+// Touch chhodte waqt dekho kitna swipe hua
+document.addEventListener('touchend', (e) => {
+    let touchEndX = e.changedTouches[0].clientX;
+    
+    // CONDITION: Agar touch left corner (40px) se shuru ho, aur right ki taraf (60px se zyada) swipe ho
+    if (touchStartX < 40 && (touchEndX - touchStartX) > 60) {
+        goBack(); // Peeche jao
+    }
+}, { passive: true });
+
+// Peeche jaane ka Logic
+function goBack() {
+    if (currentView !== 'drive' || folderStack.length === 0) return; 
+    
+    if (folderStack.length === 1) {
+        // Agar sirf ek folder andar hain, toh root par jao
+        navigateTo('root', 'My Drive');
+    } else {
+        // Agar deep folder mein hain, toh theek ek step piche jao
+        const parentFolder = folderStack[folderStack.length - 2];
+        navigateTo(parentFolder.id, parentFolder.name);
+    }
+}
