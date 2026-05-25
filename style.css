@@ -220,3 +220,81 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
     align-items: center;
     gap: 6px;
 }
+/* ==========================================
+   ⭐ MOBILE BOTTOM ACTION BAR ⭐
+   ========================================== */
+
+/* Desktop par yeh bar nahi dikhega */
+.mobile-bottom-bar {
+    display: none;
+}
+
+/* Jab screen mobile size (768px se choti) ho jaye */
+@media (max-width: 768px) {
+    
+    /* Upar toolbar wale purane icon ko mobile par chupa do taaki jagah ban jaye */
+    /* Note: Agar aapke upar wale button ki ID/Class alag hai, toh usko display: none kar dena */
+    .top-toolbar .upload-btn, 
+    .top-toolbar .new-folder-btn {
+        display: none !important;
+    }
+
+    /* Address bar ko poori width do */
+    #breadcrumb {
+        width: 100%;
+        margin-right: 0;
+    }
+
+    /* Niche wala Bottom Bar Design */
+    .mobile-bottom-bar {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #1e1e2a; /* Aapke theme ka dark color */
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 12px 15px;
+        z-index: 999;
+        box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
+        gap: 12px;
+        padding-bottom: env(safe-area-inset-bottom, 15px); /* iPhone ke bottom swipe bar se bachaane ke liye */
+    }
+
+    /* Bottom Bar ke Buttons ka design */
+    .mobile-bottom-bar button {
+        flex: 1; /* Dono buttons barabar 50-50 jagah lenge */
+        padding: 12px 0;
+        border-radius: 10px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: transform 0.1s, background 0.2s;
+    }
+
+    .mobile-bottom-bar button:active {
+        transform: scale(0.95); /* Click karne par chota sa animation */
+    }
+
+    /* New Folder Button */
+    .mobile-bottom-bar button:nth-child(1) {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    /* Upload Button */
+    .mobile-bottom-bar button:nth-child(2) {
+        background: #6c63ff; /* Aapka main blue/purple accent color */
+        color: white;
+    }
+
+    /* File List ko neeche se thoda utha dein taaki files bar ke piche na chhupein */
+    #fileList {
+        padding-bottom: 90px !important; 
+    }
+}
