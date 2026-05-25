@@ -72,6 +72,9 @@ async function loadCurrentFolder() {
     }
 }
 async function loadMoreItems() {
+    // CRITICAL TRASH BYPASS: Agar view drive nahi hai, toh scroll pagination kaam nahi karega
+    if (currentView !== 'drive') return;
+    
     if (isLoading || !hasMore) return;
     isLoading = true;
     
@@ -88,15 +91,24 @@ async function loadMoreItems() {
     } catch(e) { console.error(e); }
     isLoading = false;
 }
-
 async function loadTrash() {
     try {
-        const headers = localStorage.getItem('td_token') ? getHeaders() : {};
-        const res = await fetch('/trash', {headers}); const data = await res.json();
-        allFiles = data.files; foldersData = data.folders; sortFiles(true);
-    } catch {}
+        const token = localStorage.getItem('td_token');
+        const headers = token ? getHeaders() : {};
+        
+        const res = await fetch('/trash', { headers }); 
+        const data = await res.json();
+        
+        // Trash ka data set karein
+        allFiles = data.files || []; 
+        foldersData = data.folders || []; 
+        
+        // Direct sorting aur safe rendering call bina pagination interference ke
+        sortFiles(true);
+    } catch (e) {
+        console.error("Trash Load Error:", e);
+    }
 }
-
 // ==========================================
 // 3. INITIALIZATION (DOM Ready & Events)
 // ==========================================
@@ -233,18 +245,39 @@ function showLogin() { document.getElementById('loginScreen').style.display='fle
 function showDrive() { hideLoader(); document.getElementById('loginScreen').style.display='none'; document.getElementById('driveContent').style.display='flex'; switchView('drive'); }
 
 function switchView(view) {
-    currentView = view; clearSelection();
+    currentView = view; 
+    clearSelection();
+    
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('settingsArea').style.display = view === 'settings' ? 'block' : 'none';
     document.getElementById('mainToolbar').style.display = view === 'drive' ? 'flex' : 'none';
     document.getElementById('fileList').style.display = view === 'settings' ? 'none' : 'grid';
     
-    if(view === 'drive') { document.getElementById('navDrive').classList.add('active'); navigateTo('root', 'My Drive'); } 
-    else if(view === 'trash') { document.getElementById('navTrash').classList.add('active'); loadTrash(); document.getElementById('breadcrumb').innerText = "Trash Bin"; } 
-    else if(view === 'settings') { document.getElementById('navSettings').classList.add('active'); document.getElementById('breadcrumb').innerText = "Security Settings"; document.getElementById('emptyState').style.display='none'; }
-    if(document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
-}
+    // Reset list layout container html before loading view
+    const listEl = document.getElementById('fileList');
+    if (listEl) listEl.innerHTML = ''; 
 
+    if (view === 'drive') { 
+        document.getElementById('navDrive').classList.add('active'); 
+        navigateTo('root', 'My Drive'); 
+    } 
+    else if (view === 'trash') { 
+        document.getElementById('navTrash').classList.add('active'); 
+        document.getElementById('breadcrumb').innerText = "Trash Bin";
+        
+        // Trash ke liye pagination bypass indicators
+        currentPage = 1;
+        hasMore = false; // Isse background scroll load ruk jayega trash view mein
+        
+        loadTrash(); 
+    } 
+    else if (view === 'settings') { 
+        document.getElementById('navSettings').classList.add('active'); 
+        document.getElementById('breadcrumb').innerText = "Security Settings"; 
+        document.getElementById('emptyState').style.display = 'none'; 
+    }
+    if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
+}
 function navigateTo(folderId, folderName) {
     if(currentView !== 'drive') return;
     clearSelection();
