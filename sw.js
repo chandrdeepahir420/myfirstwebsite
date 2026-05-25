@@ -1,31 +1,43 @@
-// sw.js - Service Worker Update
-const CACHE_NAME = 'teledrive-v1';
+// sw.js - Service Worker Update (API Bypass)
+const CACHE_NAME = 'teledrive-v2'; // Changed version to force refresh
 
 self.addEventListener('fetch', (e) => {
   const url = e.request.url;
 
-  // 🚨 CRITICAL FIX: Agar URL mein '/download/' word hai, toh network request ko bina 
-  // chede direct server par jaane do. Service Worker isme koi caching ya intercept nahi karega.
-  if (url.includes('/download/')) {
+  // 🚨 CRITICAL FIX: Database APIs aur Downloads ko hamesha network se aane do
+  // Inhe kabhi cache nahi karna chahiye warna deleted files dikhti rahengi
+  if (url.includes('/download/') || url.includes('/files') || url.includes('/folders') || url.includes('/trash')) {
     return e.respondWith(fetch(e.request));
   }
 
-  // Baaki saari normal files (HTML, CSS, JS, API Calls) ke liye caching logic
-  if (url.includes('/files') || url.includes('/folders') || url.includes('api.telegram.org')) {
-    e.respondWith(
-      caches.match(e.request).then((response) => {
-        return response || fetch(e.request).then((networkResponse) => {
-          return caches.open(CACHE_NAME).then((cache) => {
-            // POST requests ya download requests ko cache na karein
-            if (e.request.method === 'GET') {
-              cache.put(e.request, networkResponse.clone());
-            }
-            return networkResponse;
-          });
+  // Baaki static files (HTML, CSS, JS) aur Telegram Thumbnails ke liye caching
+  e.respondWith(
+    caches.match(e.request).then((response) => {
+      return response || fetch(e.request).then((networkResponse) => {
+        return caches.open(CACHE_NAME).then((cache) => {
+          // Sirf GET requests ko cache karein
+          if (e.request.method === 'GET') {
+            cache.put(e.request, networkResponse.clone());
+          }
+          return networkResponse;
         });
-      })
-    );
-  } else {
-    e.respondWith(fetch(e.request));
-  }
+      });
+    })
+  );
+});
+
+// ⭐ NAYA LOGIC: Purane cache ko delete karne ke liye
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('Old cache deleted:', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
+  );
 });
