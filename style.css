@@ -170,3 +170,53 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
     object-fit: cover; /* Image ko crop karke square mein fit karega */
     aspect-ratio: 1 / 1;
 }
+/* ==========================================
+   ⭐ WINDOWS-STYLE ADDRESS BAR ⭐
+   ========================================== */
+#breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    background: rgba(120, 120, 120, 0.15); /* Halika background box banayega */
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Scrollbar chupane ke liye (taaki clean dikhe) */
+#breadcrumb::-webkit-scrollbar { display: none; }
+    
+.path-link {
+    color: #8c8c9a;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.path-link:hover {
+    background: rgba(255,255,255,0.1);
+    color: #ffffff;
+}
+
+.path-separator {
+    color: #666;
+    font-size: 0.7rem;
+    margin: 0 4px;
+}
+
+.path-current {
+    color: #ffffff;
+    font-weight: 600;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
