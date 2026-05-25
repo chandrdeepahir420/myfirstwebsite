@@ -281,21 +281,34 @@ function switchView(view) {
 function navigateTo(folderId, folderName) {
     if(currentView !== 'drive') return;
     clearSelection();
-    if (folderId === 'root') { currentFolderId = 'root'; folderStack = []; } 
-    else {
+    
+    if (folderId === 'root') { 
+        currentFolderId = 'root'; 
+        folderStack = []; 
+    } else {
         const idx = folderStack.findIndex(f => f.id === folderId);
-        if (idx !== -1) folderStack = folderStack.slice(0, idx + 1); else folderStack.push({ id: folderId, name: folderName });
+        if (idx !== -1) folderStack = folderStack.slice(0, idx + 1); 
+        else folderStack.push({ id: folderId, name: folderName });
         currentFolderId = folderId;
     }
-    let html = `<span onclick="navigateTo('root')">My Drive</span>`;
+    
+    // Windows Style Interactive Breadcrumb HTML Generation
+    let html = `<span class="path-link" onclick="navigateTo('root')"><i class="fa-solid fa-hard-drive"></i> My Drive</span>`;
+    
     folderStack.forEach((f, i) => {
-        html += `<span style="margin: 0 4px; color: gray;">›</span>`;
-        if (i === folderStack.length - 1) html += `<span>${f.name}</span>`; else html += `<span style="cursor:pointer" onclick="navigateTo('${f.id}','${f.name}')">${f.name}</span>`;
+        html += `<span class="path-separator"><i class="fa-solid fa-chevron-right"></i></span>`;
+        if (i === folderStack.length - 1) {
+            // Aakhiri folder click nahi ho sakta (Kyunki hum wahi par hain)
+            html += `<span class="path-current"><i class="fa-solid fa-folder-open text-blue-400"></i> ${f.name}</span>`; 
+        } else {
+            // Peeche wale folders click ho sakte hain
+            html += `<span class="path-link" onclick="navigateTo('${f.id}','${f.name}')">${f.name}</span>`;
+        }
     });
+    
     document.getElementById('breadcrumb').innerHTML = html;
     loadCurrentFolder();
 }
-
 // ==========================================
 // 5. RENDERING & SORTING
 // ==========================================
