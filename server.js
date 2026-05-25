@@ -136,17 +136,12 @@ app.get('/download/:id', checkAuth, async (req, res) => {
         const file = await FileModel.findById(req.params.id);
         if (!file || !file.fileId) return res.send("File not found in database.");
 
-        // Telegram se file ka direct link mangwana
         const info = await axios.get(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${file.fileId}`);
         const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${info.data.result.file_path}`;
 
-        // Seedha browser ko Telegram link par bhej dena (Fastest & Safest)
         res.redirect(fileUrl);
-
     } catch (e) {
         console.error("Download Error:", e.response ? e.response.data : e.message);
-        
-        // Naya Error UI taaki pata chale ki real problem kya hai
         const errorMsg = e.response && e.response.data && e.response.data.description 
             ? e.response.data.description 
             : e.message;
@@ -161,18 +156,11 @@ app.get('/download/:id', checkAuth, async (req, res) => {
     }
 });
 
-// GET Files with correct folder filtering
 app.get('/files', checkAuth, async (req, res) => {
     try {
         const folderId = req.query.folderId || 'root';
+        const filter = { folderId: folderId, isTrashed: { $ne: true } };
         
-        // Filter logic: sirf wo files dikhao jo us folderId ki hain
-        const filter = { 
-            folderId: folderId, 
-            isTrashed: { $ne: true } 
-        };
-        
-        // Root access handling
         if(folderId === 'root') {
             filter.$or = [{ folderId: 'root' }, { folderId: { $exists: false } }, { folderId: null }];
         }
@@ -187,23 +175,17 @@ app.get('/files', checkAuth, async (req, res) => {
     }
 });
 
-// GET Folders with correct parentId filtering
 app.get('/folders', checkAuth, async (req, res) => {
     try {
         const parentId = req.query.parentId || 'root';
-        
-        // Filter logic: sirf wo folders dikhao jinka parentId match kare
-        const filter = { 
-            parentId: parentId, 
-            isTrashed: { $ne: true } 
-        };
-
+        const filter = { parentId: parentId, isTrashed: { $ne: true } };
         const folders = await FolderModel.find(filter);
         res.json(folders);
     } catch (e) { 
         res.status(500).json([]); 
     }
 });
+
 app.get('/files/all', checkAuth, async (req, res) => {
     try { res.json(await FileModel.find({ isTrashed: { $ne: true } })); } catch (e) { res.status(500).json([]); }
 });
@@ -230,49 +212,39 @@ app.post('/folders', checkAuth, async (req, res) => {
 });
 
 // ==========================================
-// File Trash Route
-// 📁 Route for moving a File to Trash
-// server.js - Upgraded File Delete Route
-const axios = require('axios'); // Ensure axios is installed/required at the top
+// FILE TRASH & DELETE ROUTES
+// ==========================================
 
 app.delete('/files/:id/trash', checkAuth, async (req, res) => {
     try {
-        // 1. Database se file ki details nikalen
         const fileData = await FileModel.findById(req.params.id);
-        
-        if (!fileData) {
-            return res.status(404).json({ success: false, error: "File not found in database" });
-        }
+        if (!fileData) return res.status(404).json({ success: false, error: "File not found" });
 
-        // 2. TELEGRAM BOT SE MESSAGE DELETE KAREIN
-        // Agar aapne database mein 'chatId' aur 'messageId' save kiya hua hai upload ke waqt:
-        if (fileData.telegramMessageId && fileData.telegramChatId) {
+        // ⭐ TELEGRAM DELETE LOGIC ⭐
+        // Aapke schema mein 'messageId' hai aur chat ID process.env se aayegi
+        if (fileData.messageId) {
             try {
-                const botToken = process.env.BOT_TOKEN; // Aapka Telegram Bot Token
-                const tgUrl = `https://api.telegram.org/bot${botToken}/deleteMessage`;
-                
-                await axios.post(tgUrl, {
-                    chat_id: fileData.telegramChatId,
-                    message_id: fileData.telegramMessageId
+                await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/deleteMessage`, {
+                    chat_id: process.env.TELEGRAM_CHAT_ID,
+                    message_id: fileData.messageId
                 });
-                console.log("Telegram message deleted successfully.");
+                console.log(`Telegram message ${fileData.messageId} deleted successfully.`);
             } catch (tgErr) {
-                console.error("Telegram API Error (Message might be older than 48 hours or already deleted):", tgErr.message);
-                // We won't block the database trash even if Telegram message delete fails
+                console.error("Telegram API Error:", tgErr.message);
             }
         }
 
-        // 3. Database mein file ko Trash mark karein
+        // Database mein trash mark karein
         fileData.isTrashed = true;
         fileData.trashedAt = new Date();
         await fileData.save();
         
-        res.json({ success: true, message: "File moved to trash and removed from Telegram Bot View" });
+        res.json({ success: true, message: "File moved to trash and removed from Telegram Bot" });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
-// 📁 Route for moving a Folder to Trash
+
 app.delete('/folders/:id/trash', checkAuth, async (req, res) => {
     try {
         const updatedFolder = await FolderModel.findByIdAndUpdate(
@@ -287,6 +259,7 @@ app.delete('/folders/:id/trash', checkAuth, async (req, res) => {
         res.status(500).json({ success: false, error: e.message });
     }
 });
+
 app.get('/trash', checkAuth, async (req, res) => {
     try { res.json({ files: await FileModel.find({ isTrashed: true }), folders: await FolderModel.find({ isTrashed: true }) }); } catch (e) { res.status(500).json({ files: [], folders: [] }); }
 });
@@ -301,10 +274,18 @@ app.patch('/folders/:id/restore', checkAuth, async (req, res) => {
 app.delete('/files/:id/permanent', checkAuth, async (req, res) => {
     try {
         const file = await FileModel.findById(req.params.id);
-        if(file && file.messageId) { try { await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/deleteMessage`, { chat_id: process.env.TELEGRAM_CHAT_ID, message_id: file.messageId }); } catch(err){} }
+        if(file && file.messageId) { 
+            try { 
+                await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/deleteMessage`, { 
+                    chat_id: process.env.TELEGRAM_CHAT_ID, 
+                    message_id: file.messageId 
+                }); 
+            } catch(err){} 
+        }
         await FileModel.findByIdAndDelete(req.params.id); res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
+
 app.delete('/folders/:id/permanent', checkAuth, async (req, res) => {
     try { await FolderModel.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -315,7 +296,14 @@ setInterval(async () => {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const expiredFiles = await FileModel.find({ isTrashed: true, trashedAt: { $lt: thirtyDaysAgo } });
         for(let file of expiredFiles) {
-            if (file.messageId) { try { await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/deleteMessage`, { chat_id: process.env.TELEGRAM_CHAT_ID, message_id: file.messageId }); } catch(e){} }
+            if (file.messageId) { 
+                try { 
+                    await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/deleteMessage`, { 
+                        chat_id: process.env.TELEGRAM_CHAT_ID, 
+                        message_id: file.messageId 
+                    }); 
+                } catch(e){} 
+            }
             await FileModel.findByIdAndDelete(file._id);
         }
         await FolderModel.deleteMany({ isTrashed: true, trashedAt: { $lt: thirtyDaysAgo } });
