@@ -104,7 +104,14 @@
         <button class="btn-primary" style="margin-top:20px;" onclick="document.getElementById('detailsModal').style.display='none'">Close</button>
     </div>
 </div>
-
+<div class="mobile-bottom-bar">
+    <button onclick="createFolder()">
+        <i class="fa-solid fa-folder-plus"></i> New Folder
+    </button>
+    <button onclick="document.getElementById('filePicker').click()">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
+    </button>
+</div>
 <script src="script.js"></script>
 </body>
 </html>
