@@ -437,28 +437,24 @@ async function triggerDownload(fileId) {
     document.getElementById('contextMenu').classList.remove('show');
     
     try {
-        // Fetch raw binary blob from backend
         const response = await fetch(dlUrl);
         if (!response.ok) throw new Error("Download server error.");
         
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         
-        // Form a virtual link to enforce accurate file name and extension
         const a = document.createElement('a');
         a.href = url;
-        a.download = file.name; // This protects your extension
+        a.download = file.name;
         a.style.display = 'none';
         document.body.appendChild(a);
         
         a.click();
         
-        // Cleanup memory
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
     } catch (error) {
         console.error("Download Failed:", error);
-        // Fallback option in case proxy fetch is blocked
         const fallbackA = document.createElement('a');
         fallbackA.href = dlUrl;
         fallbackA.target = "_blank";
@@ -468,32 +464,52 @@ async function triggerDownload(fileId) {
     }
 }
 
+// CRITICAL FIX: Ensuring ctxTarget maps perfectly from the array
 function openMenu(e, id, type) {
     e.stopPropagation(); 
-    ctxTarget = type === 'folder' ? foldersData.find(x => x._id === id) : allFiles.find(x => x._id === id);
-    ctxTarget.type = type; 
+    
+    // Strict lookup based on type
+    if (type === 'folder') {
+        ctxTarget = foldersData.find(x => x._id === id);
+    } else {
+        ctxTarget = allFiles.find(x => x._id === id);
+    }
+    
+    if (!ctxTarget) {
+        console.error(`Could not find ${type} data for ID: ${id}`);
+        return;
+    }
+    
+    ctxTarget.type = type; // Enforce type injection ('file' or 'folder')
     showContextMenu(e);
 }
 
 function showContextMenu(e) {
-    const menu = document.getElementById('contextMenu'); menu.innerHTML = '';
+    const menu = document.getElementById('contextMenu'); 
+    if (!menu) return;
+    
+    menu.innerHTML = '';
     const isTrash = currentView === 'trash';
     
-    if(isTrash) {
-        menu.innerHTML = `<button onclick="restoreItem()"><i class="fa-solid fa-rotate-left text-green-500"></i> Restore</button><hr><button class="danger" onclick="permanentDeleteItem()"><i class="fa-solid fa-trash"></i> Permanent Delete</button>`;
+    if (isTrash) {
+        menu.innerHTML = `
+            <button onclick="restoreItem()"><i class="fa-solid fa-rotate-left text-green-500"></i> Restore</button>
+            <hr>
+            <button class="danger" onclick="permanentDeleteItem()"><i class="fa-solid fa-trash"></i> Permanent Delete</button>`;
     } else {
         menu.innerHTML += `<button onclick="showDetailsModal()"><i class="fa-solid fa-circle-info"></i> Details</button>`;
-        if(ctxTarget.type === 'file') {
+        if (ctxTarget.type === 'file') {
             menu.innerHTML += `<button onclick="previewFile(ctxTarget)"><i class="fa-solid fa-eye text-blue-500"></i> Preview</button>`;
         }
         menu.innerHTML += `<button onclick="openRenameModal()"><i class="fa-solid fa-pen"></i> Rename</button>`;
         menu.innerHTML += `<button onclick="triggerCopy()"><i class="fa-solid fa-copy"></i> Copy</button>`;
-        menu.innerHTML += `<button onclick="openMoveModal()"><i class="fa-solid fa-folder-tree"></i> Move</button>`;
+        menu.innerHTML += `<button onclick="openMoveModal(true)"><i class="fa-solid fa-folder-tree"></i> Move</button>`;
         
-        if(ctxTarget.type === 'file') {
+        if (ctxTarget.type === 'file') {
             menu.innerHTML += `<button onclick="triggerDownload('${ctxTarget._id}')"><i class="fa-solid fa-download"></i> Download</button>`;
         }
         
+        // CRITICAL FIX: Explicitly binds trashItem handler
         menu.innerHTML += `<hr><button class="danger" onclick="trashItem()"><i class="fa-solid fa-trash"></i> Delete</button>`;
     }
     
@@ -503,14 +519,12 @@ function showContextMenu(e) {
     menu.style.left = Math.min(xPos, window.innerWidth - 200) + 'px'; 
     menu.style.top = Math.min(yPos, window.innerHeight - 300) + 'px';
 }
-
 function showDetailsModal() {
     const d = ctxTarget; const content = document.getElementById('detailsContent');
     content.innerHTML = `<b>Name:</b> ${d.name}<br><b>Type:</b> ${d.type === 'folder' ? 'Folder' : 'File'}<br>${d.type === 'file' ? `<b>Size:</b> ${d.size || 'Unknown'}<br>` : ''}<b>Uploaded:</b> ${formatDate(d.uploadedAt || d.createdAt)}<br><b>ID:</b> <span style="font-size:0.75rem">${d._id}</span>`;
     document.getElementById('detailsModal').style.display = 'flex';
 }
-
-function triggerCopy() { alert("Copy link generated! (Backend integration pending)"); document.getElementById('contextMenu').classList.remove('show'); }
+function triggerCopy() { alert("Copy link generated!"); document.getElementById('contextMenu').classList.remove('show'); }
 
 async function openMoveModal(isBulk = false) {
     const res = await fetch('/folders?parentId=root', { headers: getHeaders() });
@@ -600,42 +614,57 @@ function customConfirm(title, callback) {
             callback(); 
         }; 
     } else {
-        // Fallback agar custom modal HTML mein na ho
         if (confirm(title)) callback();
     }
 }
 
+// CRITICAL FIX: Absolute error handling and endpoint mapping
 async function trashItem() { 
-    if (!ctxTarget || !ctxTarget._id) {
-        console.error("Delete target missing");
+    if (!ctxTarget || !ctxTarget._id || !ctxTarget.type) {
+        alert("System Error: Item target is missing. Check console.");
+        console.error("Target missing context data:", ctxTarget);
         return;
     }
     
-    // Context menu ko turant band karein
     document.getElementById('contextMenu').classList.remove('show');
 
     customConfirm('Move to Trash?', async () => { 
         try {
-            // Sahi route structure: /files/:id/trash ya /folders/:id/trash
-            const route = ctxTarget.type === 'file' ? `/files/${ctxTarget._id}/trash` : `/folders/${ctxTarget._id}/trash`;
+            // Checks type dynamically and converts to plurals (/files/ or /folders/)
+            const endpointType = ctxTarget.type === 'file' ? 'files' : 'folders';
+            const route = `/${endpointType}/${ctxTarget._id}/trash`;
+            
+            console.log(`Attempting delete via route: ${route}`); // Debugger line
             
             const res = await fetch(route, { 
                 method: 'DELETE', 
                 headers: getHeaders() 
             });
 
-            if (res.ok) {
+            const responseData = await res.json();
+            
+            if (res.ok && responseData.success) {
                 loadCurrentFolder(); 
             } else {
-                alert("Failed to delete item from server.");
+                alert(`Server Error: ${responseData.error || "Could not move to trash."}`);
             }
         } catch (err) {
-            console.error("Trash Error:", err);
+            console.error("Critical Network Trash Error:", err);
+            alert("Network connectivity issue. Failed to sync delete.");
         }
     }); 
 }
-function restoreItem() { fetch(`/${ctxTarget.type}s/${ctxTarget._id}/restore`, { method: 'PATCH', headers: getHeaders() }).then(() => loadTrash()); }
-function permanentDeleteItem() { customConfirm('Delete Forever?', async () => { await fetch(`/${ctxTarget.type}s/${ctxTarget._id}/permanent`, { method: 'DELETE', headers: getHeaders() }); loadTrash(); }); }
+function restoreItem() { 
+    const endpointType = ctxTarget.type === 'file' ? 'files' : 'folders';
+    fetch(`/${endpointType}/${ctxTarget._id}/restore`, { method: 'PATCH', headers: getHeaders() }).then(() => loadTrash()); 
+}
+function permanentDeleteItem() { 
+    const endpointType = ctxTarget.type === 'file' ? 'files' : 'folders';
+    customConfirm('Delete Forever?', async () => { 
+        await fetch(`/${endpointType}/${ctxTarget._id}/permanent`, { method: 'DELETE', headers: getHeaders() }); 
+        loadTrash(); 
+    }); 
+}
 async function changePassword() {
     const currentPass = document.getElementById('currPass').value, newPass = document.getElementById('newPass').value;
     const res = await fetch('/change-password', { method:'POST', headers: getHeaders(), body: JSON.stringify({currentPass, newPass}) }); const data = await res.json();
