@@ -231,20 +231,33 @@ app.post('/folders', checkAuth, async (req, res) => {
 
 // ==========================================
 // File Trash Route
+// 📁 Route for moving a File to Trash
 app.delete('/files/:id/trash', checkAuth, async (req, res) => {
     try {
-        await FileModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: new Date() });
-        res.json({ success: true, message: "Moved to trash" });
+        const updatedFile = await FileModel.findByIdAndUpdate(
+            req.params.id, 
+            { isTrashed: true, trashedAt: new Date() },
+            { new: true }
+        );
+        if (!updatedFile) return res.status(404).json({ success: false, error: "File not found" });
+        
+        res.json({ success: true, message: "File successfully moved to trash" });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// Folder Trash Route
+// 📁 Route for moving a Folder to Trash
 app.delete('/folders/:id/trash', checkAuth, async (req, res) => {
     try {
-        await FolderModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: new Date() });
-        res.json({ success: true, message: "Moved to trash" });
+        const updatedFolder = await FolderModel.findByIdAndUpdate(
+            req.params.id, 
+            { isTrashed: true, trashedAt: new Date() },
+            { new: true }
+        );
+        if (!updatedFolder) return res.status(404).json({ success: false, error: "Folder not found" });
+        
+        res.json({ success: true, message: "Folder successfully moved to trash" });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
