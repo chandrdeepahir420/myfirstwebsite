@@ -567,8 +567,50 @@ async function submitRename() {
     document.getElementById('renameModal').style.display = 'none'; currentView === 'drive' ? loadCurrentFolder() : loadTrash();
 }
 
-function customConfirm(title, callback) { document.getElementById('confirmTitle').innerText = title; document.getElementById('confirmModal').style.display = 'flex'; document.getElementById('confirmYesBtn').onclick = () => { document.getElementById('confirmModal').style.display = 'none'; callback(); }; }
-function trashItem() { customConfirm('Move to Trash?', async () => { await fetch(`/${ctxTarget.type}s/${ctxTarget._id}/trash`, { method: 'DELETE', headers: getHeaders() }); loadCurrentFolder(); }); }
+function customConfirm(title, callback) { 
+    const modal = document.getElementById('confirmModal');
+    if (modal) {
+        document.getElementById('confirmTitle').innerText = title; 
+        modal.style.display = 'flex'; 
+        document.getElementById('confirmYesBtn').onclick = () => { 
+            modal.style.display = 'none'; 
+            callback(); 
+        }; 
+    } else {
+        // Fallback agar custom modal HTML mein na ho
+        if (confirm(title)) callback();
+    }
+}
+
+async function trashItem() { 
+    if (!ctxTarget || !ctxTarget._id) {
+        console.error("Delete target missing");
+        return;
+    }
+    
+    // Context menu ko turant band karein
+    document.getElementById('contextMenu').classList.remove('show');
+
+    customConfirm('Move to Trash?', async () => { 
+        try {
+            // Sahi route structure: /files/:id/trash ya /folders/:id/trash
+            const route = ctxTarget.type === 'file' ? `/files/${ctxTarget._id}/trash` : `/folders/${ctxTarget._id}/trash`;
+            
+            const res = await fetch(route, { 
+                method: 'DELETE', 
+                headers: getHeaders() 
+            });
+
+            if (res.ok) {
+                loadCurrentFolder(); 
+            } else {
+                alert("Failed to delete item from server.");
+            }
+        } catch (err) {
+            console.error("Trash Error:", err);
+        }
+    }); 
+}
 function restoreItem() { fetch(`/${ctxTarget.type}s/${ctxTarget._id}/restore`, { method: 'PATCH', headers: getHeaders() }).then(() => loadTrash()); }
 function permanentDeleteItem() { customConfirm('Delete Forever?', async () => { await fetch(`/${ctxTarget.type}s/${ctxTarget._id}/permanent`, { method: 'DELETE', headers: getHeaders() }); loadTrash(); }); }
 async function changePassword() {
@@ -593,7 +635,28 @@ function toggleSelect(id, el, forceSelect = false) {
 }
 
 function clearSelection() { selectedIds.clear(); document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected')); document.getElementById('actionBar').style.display='none'; }
-async function bulkTrash() { customConfirm('Trash selected items?', async () => { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/trash`, {method:'DELETE', headers:getHeaders()}); } clearSelection(); loadCurrentFolder(); }); }
+async function bulkTrash() { 
+    if (selectedIds.size === 0) return;
+
+    customConfirm('Trash selected items?', async () => { 
+        try {
+            for(let id of selectedIds) {
+                // Check karein ki item file hai ya folder
+                const isFile = allFiles.find(f => f._id === id);
+                const route = isFile ? `/files/${id}/trash` : `/folders/${id}/trash`;
+                
+                await fetch(route, { 
+                    method: 'DELETE', 
+                    headers: getHeaders() 
+                }); 
+            }
+            clearSelection(); 
+            loadCurrentFolder(); 
+        } catch (err) {
+            console.error("Bulk Trash Error:", err);
+        }
+    }); 
+}
 async function bulkRestore() { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/restore`, {method:'PATCH', headers:getHeaders()}); } clearSelection(); loadTrash(); }
 async function bulkPermanent() { customConfirm('Delete permanently?', async () => { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/permanent`, {method:'DELETE', headers:getHeaders()}); } clearSelection(); loadTrash(); }); }
 
