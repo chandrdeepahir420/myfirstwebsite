@@ -290,19 +290,40 @@ function getIconStyle(name, isFolder) {
 }
 
 function renderItems(folders, files, isTrash) {
-    const listEl = document.getElementById('fileList'), emptyEl = document.getElementById('emptyState');
+    const listEl = document.getElementById('fileList');
+    const emptyEl = document.getElementById('emptyState');
+    
+    if (!listEl) return;
+
+    // CRITICAL FIX 1: Jab bhi ye function chale, sabse pehle purana saara content screen se saaf karo!
+    listEl.innerHTML = '';
     listEl.className = `file-grid${isGridView ? '' : ' list-view'}`; 
     
-    if (folders.length > 0) listEl.innerHTML = ''; 
-    
-    if(!folders.length && !files.length && allFiles.length === 0) { 
-        emptyEl.style.display='flex'; document.getElementById('emptyIcon').className = isTrash ? 'fa-solid fa-trash-can text-5xl' : 'fa-solid fa-folder-open text-5xl text-slate-500'; document.getElementById('emptyTitle').innerText = isTrash ? 'Trash is empty' : 'No files here';
-        return; 
+    // CRITICAL FIX 2: Agar folders aur files dono hi empty hain (Empty Folder Case)
+    if (!folders.length && !files.length) { 
+        if (emptyEl) {
+            emptyEl.style.display = 'flex'; 
+            
+            // Flexbox centering grid element ke upar rely karegi
+            document.getElementById('emptyIcon').className = isTrash 
+                ? 'fa-solid fa-trash-can text-5xl' 
+                : 'fa-solid fa-folder-open text-5xl text-slate-500'; 
+                
+            document.getElementById('emptyTitle').innerText = isTrash 
+                ? 'Trash is empty' 
+                : 'No files here';
+        }
+        return; // Function ko yahin rok do taaki neeche kuch render na ho
     }
-    emptyEl.style.display='none';
     
+    // Agar data hai, toh empty state ko chupa do
+    if (emptyEl) emptyEl.style.display = 'none';
+    
+    // 📁 FOLDERS RENDER ENGINE
     folders.forEach(f => {
-        const d = document.createElement('div'); d.className = `folder-card ${selectedIds.has(f._id)?'selected':''}`; d.dataset.id = f._id;
+        const d = document.createElement('div'); 
+        d.className = `folder-card ${selectedIds.has(f._id) ? 'selected' : ''}`; 
+        d.dataset.id = f._id;
         const style = getIconStyle(f.name, true);
         d.innerHTML = `
             <div class="select-check">✓</div>
@@ -315,15 +336,18 @@ function renderItems(folders, files, isTrash) {
             
         d.querySelector('.select-check').addEventListener('click', (e) => { e.stopPropagation(); toggleSelect(f._id, d); });
         d.addEventListener('click', (e) => { 
-            if(e.target.closest('.three-dot-btn')) return; 
-            if (selectedIds.size > 0) { toggleSelect(f._id, d); } else if(!isTrash) { navigateTo(f._id, f.name); }
+            if (e.target.closest('.three-dot-btn')) return; 
+            if (selectedIds.size > 0) { toggleSelect(f._id, d); } else if (!isTrash) { navigateTo(f._id, f.name); }
         });
         d.addEventListener('contextmenu', e => { e.preventDefault(); openMenu(e, f._id, 'folder'); });
         listEl.appendChild(d);
     });
     
+    // 📄 FILES RENDER ENGINE
     files.forEach(f => {
-        const d = document.createElement('div'); d.className = `file-card ${selectedIds.has(f._id)?'selected':''}`; d.dataset.id = f._id;
+        const d = document.createElement('div'); 
+        d.className = `file-card ${selectedIds.has(f._id) ? 'selected' : ''}`; 
+        d.dataset.id = f._id;
         const style = getIconStyle(f.name, false);
         
         const ext = f.name.split('.').pop().toLowerCase();
@@ -347,14 +371,13 @@ function renderItems(folders, files, isTrash) {
             
         d.querySelector('.select-check').addEventListener('click', (e) => { e.stopPropagation(); toggleSelect(f._id, d); });
         d.addEventListener('click', (e) => { 
-            if(e.target.closest('.three-dot-btn')) return;
-            if (selectedIds.size > 0) { toggleSelect(f._id, d); } else if(!isTrash) { previewFile(f); }
+            if (e.target.closest('.three-dot-btn')) return;
+            if (selectedIds.size > 0) { toggleSelect(f._id, d); } else if (!isTrash) { previewFile(f); }
         });
         d.addEventListener('contextmenu', e => { e.preventDefault(); openMenu(e, f._id, 'file'); });
         listEl.appendChild(d);
     });
 }
-
 function toggleView() { isGridView = !isGridView; listEl = document.getElementById('fileList'); listEl.innerHTML = ''; sortFiles(); }
 
 // ==========================================
