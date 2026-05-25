@@ -232,21 +232,46 @@ app.post('/folders', checkAuth, async (req, res) => {
 // ==========================================
 // File Trash Route
 // 📁 Route for moving a File to Trash
+// server.js - Upgraded File Delete Route
+const axios = require('axios'); // Ensure axios is installed/required at the top
+
 app.delete('/files/:id/trash', checkAuth, async (req, res) => {
     try {
-        const updatedFile = await FileModel.findByIdAndUpdate(
-            req.params.id, 
-            { isTrashed: true, trashedAt: new Date() },
-            { new: true }
-        );
-        if (!updatedFile) return res.status(404).json({ success: false, error: "File not found" });
+        // 1. Database se file ki details nikalen
+        const fileData = await FileModel.findById(req.params.id);
         
-        res.json({ success: true, message: "File successfully moved to trash" });
+        if (!fileData) {
+            return res.status(404).json({ success: false, error: "File not found in database" });
+        }
+
+        // 2. TELEGRAM BOT SE MESSAGE DELETE KAREIN
+        // Agar aapne database mein 'chatId' aur 'messageId' save kiya hua hai upload ke waqt:
+        if (fileData.telegramMessageId && fileData.telegramChatId) {
+            try {
+                const botToken = process.env.BOT_TOKEN; // Aapka Telegram Bot Token
+                const tgUrl = `https://api.telegram.org/bot${botToken}/deleteMessage`;
+                
+                await axios.post(tgUrl, {
+                    chat_id: fileData.telegramChatId,
+                    message_id: fileData.telegramMessageId
+                });
+                console.log("Telegram message deleted successfully.");
+            } catch (tgErr) {
+                console.error("Telegram API Error (Message might be older than 48 hours or already deleted):", tgErr.message);
+                // We won't block the database trash even if Telegram message delete fails
+            }
+        }
+
+        // 3. Database mein file ko Trash mark karein
+        fileData.isTrashed = true;
+        fileData.trashedAt = new Date();
+        await fileData.save();
+        
+        res.json({ success: true, message: "File moved to trash and removed from Telegram Bot View" });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
-
 // 📁 Route for moving a Folder to Trash
 app.delete('/folders/:id/trash', checkAuth, async (req, res) => {
     try {
