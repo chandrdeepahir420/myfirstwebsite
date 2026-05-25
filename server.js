@@ -230,15 +230,25 @@ app.post('/folders', checkAuth, async (req, res) => {
 });
 
 // ==========================================
-// TRASH & DELETE ROUTES
-// ==========================================
+// File Trash Route
 app.delete('/files/:id/trash', checkAuth, async (req, res) => {
-    try { await FileModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: Date.now() }); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); }
-});
-app.delete('/folders/:id/trash', checkAuth, async (req, res) => {
-    try { await FolderModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: Date.now() }); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); }
+    try {
+        await FileModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: new Date() });
+        res.json({ success: true, message: "Moved to trash" });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
+// Folder Trash Route
+app.delete('/folders/:id/trash', checkAuth, async (req, res) => {
+    try {
+        await FolderModel.findByIdAndUpdate(req.params.id, { isTrashed: true, trashedAt: new Date() });
+        res.json({ success: true, message: "Moved to trash" });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
 app.get('/trash', checkAuth, async (req, res) => {
     try { res.json({ files: await FileModel.find({ isTrashed: true }), folders: await FolderModel.find({ isTrashed: true }) }); } catch (e) { res.status(500).json({ files: [], folders: [] }); }
 });
