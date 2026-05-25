@@ -212,13 +212,21 @@ function toggleSearchRow() {
 async function searchFiles() {
     const q = document.getElementById('searchInput').value.toLowerCase().trim();
     if(!q) { sortFiles(); return; }
+    
     try {
-        const res = await fetch('/files/all', { headers: getHeaders() }); const data = await res.json();
+        // 'no-store' browser ko bolta hai ki cache use mat karo, direct server se fresh data lao
+        const res = await fetch('/files/all', { 
+            headers: getHeaders(),
+            cache: 'no-store' 
+        }); 
+        
+        const data = await res.json();
         const filtered = data.filter(f => f.name.toLowerCase().includes(q));
         renderItems([], filtered, currentView === 'trash');
-    } catch(err) {}
+    } catch(err) {
+        console.error("Search fetch error:", err);
+    }
 }
-
 async function requestOTP() {
     const username = document.getElementById('usernameInput').value; const password = document.getElementById('passwordInput').value;
     if(!username || !password) return; document.getElementById('loginBtn').innerText = "Sending...";
