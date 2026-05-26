@@ -438,21 +438,65 @@ function toggleView() { isGridView = !isGridView; listEl = document.getElementBy
 // 6. FILE UPLOADING
 // ==========================================
 
-function toggleUploadPanel() { const p = document.getElementById('taskPanel'); p.style.display = p.style.display==='none' ? 'block' : 'none'; }
-function cancelAllUploads() { activeUploads.forEach(task => task.controller.abort()); document.getElementById('taskPanel').style.display='none'; }
+// ==========================================
+// ⭐ FIXED UPLOAD ENGINE & BELL BADGE ⭐
+// ==========================================
+
+let activeUploadsCount = 0; // Global tracker for uploads
+
+function toggleUploadPanel() { 
+    const p = document.getElementById('taskPanel'); 
+    p.style.display = p.style.display === 'none' ? 'block' : 'none'; 
+}
+
+function cancelAllUploads() { 
+    activeUploads.forEach(task => task.controller.abort()); 
+    document.getElementById('taskPanel').style.display = 'none'; 
+}
+
+// Badge ko update karne ka helper function
+function updateBadgeUI() {
+    const badge = document.getElementById('taskBadge');
+    if (activeUploadsCount > 0) {
+        badge.innerText = activeUploadsCount;
+        badge.style.display = 'flex'; // Dikhayein
+    } else {
+        badge.style.display = 'none'; // Chupayein
+        
+        // Auto-close panel after 3 seconds when all uploads finish
+        setTimeout(() => {
+            const p = document.getElementById('taskPanel');
+            if (p && activeUploadsCount === 0) p.style.display = 'none';
+        }, 3000);
+    }
+}
 
 document.getElementById('filePicker')?.addEventListener('change', async e => {
-    const files = Array.from(e.target.files); if (!files.length) return;
-    document.getElementById('taskBadge').style.display = 'block'; document.getElementById('taskBadge').innerText = files.length;
-    const list = document.getElementById('uploadTasksList'); document.getElementById('taskPanel').style.display = 'block';
+    const files = Array.from(e.target.files); 
+    if (!files.length) return;
+
+    // Jitni nayi files aayi hain, unhe count mein add karein aur UI update karein
+    activeUploadsCount += files.length;
+    updateBadgeUI();
+
+    const list = document.getElementById('uploadTasksList'); 
+    document.getElementById('taskPanel').style.display = 'block';
     
     for(let file of files) {
-        const taskId = Date.now() + Math.random(); const controller = new AbortController(); activeUploads.push({ id: taskId, controller });
-        const el = document.createElement('div'); el.className = 'task-item'; el.id = `task-${taskId}`;
+        const taskId = Date.now() + Math.random(); 
+        const controller = new AbortController(); 
+        activeUploads.push({ id: taskId, controller });
+        
+        const el = document.createElement('div'); 
+        el.className = 'task-item'; 
+        el.id = `task-${taskId}`;
         el.innerHTML = `<div class="task-header"><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">${file.name}</span><button class="btn-ghost" style="padding:2px 6px; font-size:0.6rem; border:none; color:var(--danger)" onclick="cancelUpload('${taskId}')"><i class="fa-solid fa-xmark"></i></button></div><div class="task-meta"><span id="meta-${taskId}">0% • 0 / 0 MB</span><span id="speed-${taskId}" class="task-speed">Connecting...</span></div><div class="task-bar"><div class="task-fill" id="fill-${taskId}"></div></div>`;
         list.appendChild(el);
 
-        const formData = new FormData(); formData.append('myFile', file); formData.append('folderId', currentFolderId); const startTime = Date.now();
+        const formData = new FormData(); 
+        formData.append('myFile', file); 
+        formData.append('folderId', currentFolderId); 
+        const startTime = Date.now();
 
         try {
             const xhr = new XMLHttpRequest();
@@ -460,19 +504,37 @@ document.getElementById('filePicker')?.addEventListener('change', async e => {
                 controller.signal.addEventListener('abort', () => { xhr.abort(); reject('Cancelled'); });
                 xhr.upload.onprogress = ev => { 
                     if(ev.lengthComputable) {
-                        const pct = Math.round((ev.loaded/ev.total)*100); document.getElementById(`fill-${taskId}`).style.width = pct + '%';
-                        const loadedMB = (ev.loaded / (1024*1024)).toFixed(1); const totalMB = (ev.total / (1024*1024)).toFixed(1);
-                        const timeElapsed = (Date.now() - startTime) / 1000; const speed = timeElapsed > 0 ? (loadedMB / timeElapsed).toFixed(1) : 0;
-                        document.getElementById(`meta-${taskId}`).innerText = `${pct}% • ${loadedMB} / ${totalMB} MB`; document.getElementById(`speed-${taskId}`).innerText = `${speed} MB/s`;
+                        const pct = Math.round((ev.loaded/ev.total)*100); 
+                        document.getElementById(`fill-${taskId}`).style.width = pct + '%';
+                        const loadedMB = (ev.loaded / (1024*1024)).toFixed(1); 
+                        const totalMB = (ev.total / (1024*1024)).toFixed(1);
+                        const timeElapsed = (Date.now() - startTime) / 1000; 
+                        const speed = timeElapsed > 0 ? (loadedMB / timeElapsed).toFixed(1) : 0;
+                        document.getElementById(`meta-${taskId}`).innerText = `${pct}% • ${loadedMB} / ${totalMB} MB`; 
+                        document.getElementById(`speed-${taskId}`).innerText = `${speed} MB/s`;
                     }
                 };
-                xhr.onload = () => resolve(xhr.responseText); xhr.onerror = () => reject('Error');
-                xhr.open('POST', '/upload'); const token = localStorage.getItem('td_token'); if(token) xhr.setRequestHeader('Authorization', `Bearer ${token}`); xhr.send(formData);
+                xhr.onload = () => resolve(xhr.responseText); 
+                xhr.onerror = () => reject('Error');
+                xhr.open('POST', '/upload'); 
+                const token = localStorage.getItem('td_token'); 
+                if(token) xhr.setRequestHeader('Authorization', `Bearer ${token}`); 
+                xhr.send(formData);
             });
             document.getElementById(`task-${taskId}`).innerHTML = `<span style="color:var(--success); font-size:0.8rem">✓ ${file.name} (Uploaded)</span>`;
-        } catch(err) { document.getElementById(`task-${taskId}`).innerHTML = `<span style="color:var(--danger); font-size:0.8rem">✗ ${file.name} (${err})</span>`; }
+        } catch(err) { 
+            document.getElementById(`task-${taskId}`).innerHTML = `<span style="color:var(--danger); font-size:0.8rem">✗ ${file.name} (${err})</span>`; 
+        } finally {
+            // ⭐ CRITICAL FIX: Upload pass ho ya fail, total count se 1 ghatao ⭐
+            activeUploadsCount = Math.max(0, activeUploadsCount - 1);
+            updateBadgeUI();
+        }
     }
+    
     setTimeout(loadCurrentFolder, 1000);
+    
+    // Naya Add kiya: Taaki aap same file dobara upload kar sakein if needed
+    e.target.value = ''; 
 });
 function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == taskId); if(task) task.controller.abort(); }
 
