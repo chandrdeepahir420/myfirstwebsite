@@ -29,6 +29,7 @@
     </div>
   </div>
 </div>
+
 <div id="driveContent" style="display:none">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header"><div class="sidebar-logo"><i class="fa-solid fa-shield-halved text-blue-500"></i><span>TeleDrive</span></div><button class="menu-close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button></div>
@@ -44,8 +45,11 @@
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
   <main class="main-content" id="mainArea">
+    
     <div class="topbar">
-      <div class="topbar-left"><button class="hamburger" id="menuToggleBtn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button><div class="breadcrumb" id="breadcrumb">My Drive</div></div>
+      <div class="topbar-left">
+          <button class="hamburger" id="menuToggleBtn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+          </div>
       <div class="topbar-actions">
         <button class="icon-btn" style="position:relative" onclick="toggleUploadPanel()"><i class="fa-solid fa-bell"></i><span id="taskBadge" style="display:none" class="badge">0</span></button>
         <select id="sortSelect" onchange="sortFiles()" class="sort-select"><option value="date-desc">Newest First</option><option value="name-asc">Name (A-Z)</option><option value="size-desc">Size (Large)</option></select>
@@ -53,10 +57,17 @@
       </div>
     </div>
 
+    <div class="breadcrumb-container">
+        <div class="breadcrumb" id="breadcrumb">My Drive</div>
+    </div>
+
     <div class="task-panel" id="taskPanel" style="display:none;"><div style="display:flex; justify-content:space-between; margin-bottom:10px; align-items:center;"><h4 style="font-size:0.9rem;">Upload Status</h4><button class="btn-ghost" style="padding:4px 8px; font-size:0.7rem; width:auto; margin:0;" onclick="cancelAllUploads()">Cancel All</button></div><div id="uploadTasksList"></div></div>
     <div class="search-row" id="searchRow" style="display:none"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="searchInput" placeholder="Search file name here..." oninput="searchFiles()"><button onclick="toggleSearchRow()">✕</button></div></div>
     
-    <div class="desktop-toolbar" id="mainToolbar"><button class="btn-new-folder" onclick="createFolder()"><i class="fa-solid fa-folder-plus text-amber-500"></i> New Folder</button><label class="btn-upload" for="filePicker"><i class="fa-solid fa-cloud-arrow-up"></i> Upload File</label></div>
+    <div class="desktop-toolbar" id="mainToolbar">
+        <button class="btn-new-folder" onclick="createFolder()"><i class="fa-solid fa-folder-plus text-amber-500"></i> New Folder</button>
+        <label class="btn-upload" for="filePicker"><i class="fa-solid fa-cloud-arrow-up"></i> Upload File</label>
+    </div>
     <input type="file" id="filePicker" style="display:none" multiple>
 
     <div class="file-area">
@@ -70,6 +81,15 @@
         <div class="input-group"><label>New Password</label><input type="password" id="newPass"></div>
         <button class="btn-primary" onclick="changePassword()">Update Secret Password</button>
     </div>
+    
+    <div class="fab-container hide-on-desktop">
+        <div class="fab-menu" id="fabMenu">
+            <button onclick="createFolder(); toggleFab()"><i class="fa-solid fa-folder-plus text-amber-500"></i> New Folder</button>
+            <label for="filePicker" onclick="toggleFab()"><i class="fa-solid fa-cloud-arrow-up text-blue-500"></i> Upload File</label>
+        </div>
+        <button class="fab-main" id="fabMain" onclick="toggleFab()"><i class="fa-solid fa-plus"></i></button>
+    </div>
+
   </main>
 
   <div class="floating-action-bar" id="actionBar" style="display:none">
@@ -88,7 +108,7 @@
         <h3>Move to...</h3>
         <select id="moveFolderSelect" class="rename-input" style="margin-top:15px;">
             <option value="root">My Drive (Root)</option>
-            </select>
+        </select>
         <div class="modal-actions" style="display:flex; gap:10px;">
             <button class="btn-ghost flex-1" style="margin:0;" onclick="document.getElementById('moveModal').style.display='none'">Cancel</button>
             <button class="btn-primary flex-1" style="margin:0;" onclick="submitMove()">Move Here</button>
@@ -102,16 +122,14 @@
         <div id="detailsContent" style="color:var(--text-muted); font-size:0.95rem; line-height:1.8;"></div>
         <button class="btn-primary" style="margin-top:20px;" onclick="document.getElementById('detailsModal').style.display='none'">Close</button>
     </div>
-  <div class="mobile-bottom-bar">
-    <button onclick="createFolder()">
-        <i class="fa-solid fa-folder-plus"></i> New Folder
-    </button>
-    <button onclick="document.getElementById('filePicker').click()">
-        <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
-    </button>
 </div>
 
-</div>
 <script src="script.js"></script>
+<script>
+    function toggleFab() {
+        document.getElementById('fabMenu').classList.toggle('show');
+        document.getElementById('fabMain').classList.toggle('active');
+    }
+</script>
 </body>
 </html>
