@@ -543,6 +543,9 @@ function cancelUpload(taskId) { const task = activeUploads.find(t => t.id == tas
 // ==========================================
 
 // FIX: upgraded download engine using blob generation to guarantee proper extensions and file names without errors.
+// ==========================================
+// ⭐ PREMIUM IPHONE-OPTIMIZED DOWNLOAD ⭐
+// ==========================================
 async function triggerDownload(fileId) {
     const file = allFiles.find(f => f._id === fileId) || ctxTarget;
     if (!file) return;
@@ -553,10 +556,29 @@ async function triggerDownload(fileId) {
     document.getElementById('contextMenu').classList.remove('show');
     
     try {
+        // Step 1: File ko background mein fetch karein
         const response = await fetch(dlUrl);
         if (!response.ok) throw new Error("Download server error.");
         
         const blob = await response.blob();
+        
+        // ⭐ Step 2: IPHONE (iOS) PWA NATIVE FIX ⭐
+        // Agar device iPhone hai aur file share/save support karta hai
+        if (navigator.canShare) {
+            // Blob ko proper File object mein convert karein
+            const fileObj = new File([blob], file.name, { type: blob.type || 'application/octet-stream' });
+            
+            if (navigator.canShare({ files: [fileObj] })) {
+                await navigator.share({
+                    files: [fileObj],
+                    title: file.name
+                });
+                return; // Share sheet open hone ke baad aage ka code rok do
+            }
+        }
+
+        // ⭐ Step 3: NORMAL PC / ANDROID FALLBACK ⭐
+        // Agar iPhone nahi hai ya Web Share fail ho jaye, toh purana tarika use karein
         const url = window.URL.createObjectURL(blob);
         
         const a = document.createElement('a');
@@ -569,8 +591,10 @@ async function triggerDownload(fileId) {
         
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+        
     } catch (error) {
         console.error("Download Failed:", error);
+        // Error aane par purana new tab wala fallback zinda rakha hai
         const fallbackA = document.createElement('a');
         fallbackA.href = dlUrl;
         fallbackA.target = "_blank";
@@ -579,7 +603,6 @@ async function triggerDownload(fileId) {
         document.body.removeChild(fallbackA);
     }
 }
-
 // CRITICAL FIX: Ensuring ctxTarget maps perfectly from the array
 function openMenu(e, id, type) {
     e.stopPropagation(); 
