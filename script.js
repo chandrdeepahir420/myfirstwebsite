@@ -852,22 +852,21 @@ async function bulkRestore() { for(let id of selectedIds) { const route = allFil
 async function bulkPermanent() { customConfirm('Delete permanently?', async () => { for(let id of selectedIds) { const route = allFiles.find(f=>f._id===id) ? 'files' : 'folders'; await fetch(`/${route}/${id}/permanent`, {method:'DELETE', headers:getHeaders()}); } clearSelection(); loadTrash(); }); }
 
 // ==========================================
-// ⭐ FIXED MULTIPLE (BULK) DOWNLOAD ENGINE ⭐
+// ⭐ ULTIMATE BULK DOWNLOAD ENGINE (NO SHARE API) ⭐
 // ==========================================
 async function bulkDownload() {
     if (!selectedIds || selectedIds.size === 0) return;
 
-    // UI Feedback: Action bar par dikhayein ki background mein kaam chal raha hai
+    // UI Feedback
     const countTextElement = document.getElementById('selectedCount');
     const originalText = countTextElement.innerText;
-    countTextElement.innerText = "Preparing Files...";
+    countTextElement.innerText = "Downloading Files...";
 
     try {
         const token = localStorage.getItem('td_token');
-        const fileArray = []; // iPhone ke liye array
-        const blobData = [];  // PC/Android ke liye array
+        const blobData = []; 
 
-        // 1. Saari selected files ko background mein fetch karein (bina download popups ke)
+        // 1. Saari files ko background mein fetch karein
         for (let id of selectedIds) {
             const fileMeta = allFiles.find(f => f._id === id);
             if (!fileMeta) continue;
@@ -877,61 +876,42 @@ async function bulkDownload() {
             if (!response.ok) continue;
 
             const blob = await response.blob();
-            
-            // Files ko categories mein baant dein (iOS vs Others)
-            if (navigator.canShare) {
-                fileArray.push(new File([blob], fileMeta.name, { type: blob.type || 'application/octet-stream' }));
-            } else {
-                blobData.push({ blob, name: fileMeta.name });
-            }
+            blobData.push({ blob, name: fileMeta.name });
         }
 
-        // 2. ⭐ IPHONE (iOS) FIX: Ek hi baar mein saari files Share Sheet mein bhej dein ⭐
-        if (navigator.canShare && fileArray.length > 0) {
-            if (navigator.canShare({ files: fileArray })) {
-                await navigator.share({
-                    files: fileArray,
-                    title: "TeleDrive Downloads"
-                });
-            } else {
-                alert("Cannot share these files together. Try downloading one by one.");
-            }
-        } 
-        // 3. ⭐ PC / ANDROID FIX: Browser Spam Filter Bypass (Time Delay Loop) ⭐
-        else {
-            // Har file ke beech mein 1 second (1000ms) ka gap dekar download karein
-            for (let i = 0; i < blobData.length; i++) {
+        // 2. ⭐ DELAYED DOWNLOAD LOOP (No Share API) ⭐
+        // Har file ke beech mein 1.5 seconds (1500ms) ka gap
+        for (let i = 0; i < blobData.length; i++) {
+            setTimeout(() => {
+                const item = blobData[i];
+                const url = window.URL.createObjectURL(item.blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = item.name;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                
+                a.click(); // File save trigger hogi
+                
+                // Memory cleanup thodi der baad
                 setTimeout(() => {
-                    const item = blobData[i];
-                    const url = window.URL.createObjectURL(item.blob);
-                    
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = item.name;
-                    a.style.display = 'none';
-                    document.body.appendChild(a);
-                    
-                    a.click(); // File save trigger hogi
-                    
-                    // Memory cleanup thodi der baad karein
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-                    }, 200);
-                    
-                }, i * 1000); // Pehli file turant (0s), dusri 1s baad, teesri 2s baad...
-            }
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 1000);
+                
+            }, i * 1500); // 0s, 1.5s, 3s...
         }
+
     } catch (error) {
         console.error("Bulk Download Error:", error);
-        alert("Something went wrong while downloading multiple files.");
+        alert("Something went wrong while downloading files.");
     }
 
-    // Process khatam hone ke baad UI ko reset karein
+    // Process khatam hone ke baad reset karein
     countTextElement.innerText = originalText;
     clearSelection();
-}
-// ==========================================
+}// ==========================================
 // ⭐ CUSTOM CREATE FOLDER LOGIC ⭐
 // ==========================================
 
