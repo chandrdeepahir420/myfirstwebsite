@@ -775,7 +775,53 @@ async function bulkDownload() {
     clearSelection();
 }
 
-async function createFolder() { const n = prompt('Folder Name:'); if(n) { await fetch('/folders', {method:'POST', headers:getHeaders(), body:JSON.stringify({name:n, parentId:currentFolderId})}); loadCurrentFolder(); } }
+// ==========================================
+// ⭐ CUSTOM CREATE FOLDER LOGIC ⭐
+// ==========================================
+
+function createFolder() { 
+    // Agar mobile FAB menu open hai, toh use pehle close kardo
+    const fabMenu = document.getElementById('fabMenu');
+    const fabMain = document.getElementById('fabMain');
+    if(fabMenu && fabMenu.classList.contains('show')) {
+        fabMenu.classList.remove('show');
+        fabMain.classList.remove('active');
+    }
+
+    // Input box ko khali karke Modal ko display karein
+    document.getElementById('newFolderInput').value = ''; 
+    document.getElementById('createFolderModal').style.display = 'flex'; 
+    document.getElementById('newFolderInput').focus(); 
+}
+
+// Jab user "Create" button dabayega, tab yeh API call hoga
+async function submitCreateFolder() {
+    const folderName = document.getElementById('newFolderInput').value.trim();
+    
+    // Agar input khali hai toh modal close mat karo
+    if(!folderName) return; 
+
+    // Modal ko hide kardo
+    document.getElementById('createFolderModal').style.display = 'none'; 
+    
+    try {
+        await fetch('/folders', {
+            method: 'POST', 
+            headers: getHeaders(), 
+            body: JSON.stringify({ name: folderName, parentId: currentFolderId })
+        });
+        
+        // Naya folder banne ke baad grid ko refresh karo
+        loadCurrentFolder(); 
+    } catch (e) {
+        console.error("Folder creation failed:", e);
+    }
+}
+
+// Ek extra premium feature: Enter key dabane par bhi folder ban jaye
+document.getElementById('newFolderInput').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') submitCreateFolder();
+});
 // ==========================================
 // ⭐ IPHONE-STYLE SWIPE TO GO BACK ⭐
 // ==========================================
