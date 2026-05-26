@@ -131,6 +131,7 @@ app.post('/upload', checkAuth, upload.single('myFile'), async (req, res) => {
 });
 
 // ── 100% SAFE DOWNLOAD & PREVIEW ENGINE ──
+// ── 100% SAFE DOWNLOAD & PREVIEW ENGINE (CORS FIXED) ──
 app.get('/download/:id', checkAuth, async (req, res) => {
     try {
         const file = await FileModel.findById(req.params.id);
@@ -139,7 +140,20 @@ app.get('/download/:id', checkAuth, async (req, res) => {
         const info = await axios.get(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${file.fileId}`);
         const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${info.data.result.file_path}`;
 
-        res.redirect(fileUrl);
+        // ⭐ YAHAN CHANGE HUA HAI: Redirect ki jagah stream pipeline ⭐
+        const response = await axios({
+            method: 'GET',
+            url: fileUrl,
+            responseType: 'stream' // File ko tukdon (stream) mein server par lana
+        });
+
+        // Browser ko batana ki yeh file hai aur iska naam kya hai
+        res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
+        res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
+
+        // File ko directly user ke browser mein bhejna (Bina server ka RAM bhare)
+        response.data.pipe(res);
+
     } catch (e) {
         console.error("Download Error:", e.response ? e.response.data : e.message);
         const errorMsg = e.response && e.response.data && e.response.data.description 
@@ -155,7 +169,6 @@ app.get('/download/:id', checkAuth, async (req, res) => {
         `);
     }
 });
-
 app.get('/files', checkAuth, async (req, res) => {
     try {
         const folderId = req.query.folderId || 'root';
