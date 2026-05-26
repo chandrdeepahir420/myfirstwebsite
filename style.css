@@ -42,13 +42,22 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 .theme-toggle-btn, .btn-logout { width: 100%; padding: 11px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; }
 
 .main-content { flex: 1; height: 100vh; display: flex; flex-direction: column; padding: 24px; overflow: hidden; width: calc(100vw - var(--sidebar-w)); }
-.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; min-height: 40px; }
-.topbar-left { display: flex; align-items: center; gap: 12px; overflow: hidden; }
+.topbar { display: flex; align-items: center; justify-content: space-between; min-height: 40px; }
+.topbar-left { display: flex; align-items: center; gap: 12px; }
 .hamburger { background: none; border: none; color: var(--text); cursor: pointer; font-size: 1.25rem; display: none; padding: 6px; }
-.breadcrumb { font-family: var(--font-head); font-weight: 600; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .icon-btn { width: 36px; height: 36px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .sort-select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; outline: none; font-size: 0.85rem; }
+
+/* ── NAYA ADDRESS BAR ── */
+.breadcrumb-container { width: 100%; margin: 15px 0; }
+#breadcrumb { display: flex; align-items: center; flex-wrap: nowrap; background: var(--surface2); padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.9rem; overflow-x: auto; white-space: nowrap; width: 100%; }
+#breadcrumb::-webkit-scrollbar { display: none; }
+.path-link { color: #8c8c9a; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background 0.2s, color 0.2s; display: flex; align-items: center; gap: 6px; }
+.path-link:hover { background: rgba(255,255,255,0.1); color: #ffffff; }
+.path-separator { color: #666; font-size: 0.7rem; margin: 0 4px; }
+.path-current { color: #ffffff; font-weight: 600; padding: 4px 8px; display: flex; align-items: center; gap: 6px; }
+
 .desktop-toolbar { display: flex; gap: 8px; margin-bottom: 16px; min-height: 38px; }
 .btn-new-folder { display: flex; align-items: center; gap: 6px; padding: 9px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.86rem; cursor: pointer; }
 .btn-upload { display: flex; align-items: center; gap: 6px; padding: 9px 16px; background: var(--accent); border-radius: 10px; color: #fff; font-size: 0.86rem; cursor: pointer; border: none; font-weight: 500; }
@@ -71,13 +80,13 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 .file-grid:not(.list-view) .select-check { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.5); border-color: white; z-index: 5; }
 .selected .select-check { background: var(--accent); border-color: var(--accent); color: white; }
 
-.ios-item-icon { width: 46px; height: 46px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.6rem; flex-shrink: 0; }
+.ios-item-icon { width: 46px; height: 46px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.6rem; flex-shrink: 0; overflow:hidden; }
+.ios-item-icon img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: 1/1; }
 .icon-folder { background: var(--ios-folder); color: white; }
 .icon-file { background: white; color: var(--accent); }
 .icon-img { background: #34c759; color: white; }
 .icon-video { background: #5856d6; color: white; }
 
-/* ── NEW: THREE DOT BUTTON STYLING ── */
 .three-dot-btn { background: none; border: none; color: var(--text-muted); font-size: 1.25rem; padding: 8px 12px; cursor: pointer; margin-left: auto; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; z-index: 10; }
 .three-dot-btn:hover { background: var(--surface2); color: var(--accent); }
 .item-details { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
@@ -85,8 +94,7 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 .item-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; }
 
 .file-grid:not(.list-view) .folder-card, .file-grid:not(.list-view) .file-card { flex-direction: column; align-items: center; padding: 16px 10px 40px; gap: 10px; text-align: center; border: 1px solid transparent; background: transparent; }
-.file-grid:not(.list-view) .folder-card:hover, .file-grid:not(.list-view) .file-card:hover { background: var(--surface2); border-color: var(--border); }
-.file-grid:not(.list-view) .folder-card.selected, .file-grid:not(.list-view) .file-card.selected { background: rgba(108,99,255,0.1); border-color: var(--accent); }
+.file-grid:not(.list-view) .folder-card:hover, .file-grid:not(.list-view) .file-card:hover { background: var(--surface2); border-color: var(--border); transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
 .file-grid:not(.list-view) .ios-item-icon { width: 70px; height: 70px; border-radius: 16px; font-size: 2.5rem; }
 .file-grid:not(.list-view) .item-name { font-size: 0.9rem; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .file-grid:not(.list-view) .item-meta { display: none; }
@@ -112,7 +120,6 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 .context-menu { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px; display: none; z-index: 2500; box-shadow: var(--shadow); min-width: 180px; }
 .context-menu.show { display: block; }
 .context-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: none; border: none; color: var(--text); cursor: pointer; font-size: 0.9rem; border-radius: 6px; }
-.context-menu button i { font-size: 1rem; width: 20px; text-align: center; }
 .context-menu button:hover { background: var(--card-hover); color: var(--accent); }
 .context-menu button.danger { color: var(--danger); }
 .context-menu hr { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
@@ -130,6 +137,12 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 /* ── SWIPE & TEXT SELECTION FIX ── */
 body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-user-select: none !important; }
 .file-card, .folder-card { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.folder-card:hover, .file-card:hover { background: rgba(108, 99, 255, 0.12) !important; border-radius: 10px !important; transition: all 0.2s ease-in-out; }
+
+/* ==========================================
+   ⭐ MOBILE FIXES & FLOATING ACTION BUTTON ⭐
+   ========================================== */
+.hide-on-desktop { display: none; }
 
 @media (max-width: 768px) {
   .sidebar { position: fixed; top: 0; left: 0; transform: translateX(-100%); transition: transform 0.24s; z-index: 2000; }
@@ -139,162 +152,87 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
   .hamburger { display: block; } 
   .file-grid.list-view { grid-template-columns: 1fr !important; gap: 0 !important; }
   .task-panel { width: calc(100vw - 32px); right: 16px; }
-  .three-dot-btn { padding: 10px 15px; } /* Thoda bada tap area mobile ke liye */
+  .three-dot-btn { padding: 10px 15px; }
+
+  /* Mobile par desktop toolbar chupao */
+  #mainToolbar { display: none !important; }
+
+  /* FAB Menu Dikhao sirf Mobile par */
+  .hide-on-desktop { display: flex; }
+  
+  /* Address Bar Mobile Styling */
+  .breadcrumb-container { width: 100%; margin: 15px 0 20px 0; }
+  #breadcrumb { width: 100%; font-size: 0.95rem; padding: 12px 14px; }
+  
+  /* Padiing on bottom to prevent hiding under FAB */
+  .file-area { padding-bottom: 80px; }
 }
+
+/* ── FAB CSS (Plus Icon & Popup Menu) ── */
+.fab-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    flex-direction: column;
+    align-items: flex-end;
+    z-index: 2000;
+}
+
+.fab-main {
+    width: 60px; 
+    height: 60px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 15px rgba(108,99,255,0.4);
+    cursor: pointer;
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.fab-main.active {
+    transform: rotate(45deg); /* Spin to form 'X' */
+    background: var(--surface2);
+    border: 2px solid var(--border);
+}
+
+.fab-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    align-items: flex-end;
+}
+
+.fab-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.fab-menu button, .fab-menu label {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 12px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+    font-size: 1rem;
+}
+
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-/* ── PREMIUM HOVER EFFECT ── */
-.folder-card:hover, .file-card:hover {
-    background: rgba(108, 99, 255, 0.12) !important; /* Halka sa blue/purple tint */
-    border-radius: 10px !important;
-    transition: all 0.2s ease-in-out;
-}
-
-/* Grid view ke liye thoda sa pop-up (zoom) effect */
-.file-grid:not(.list-view) .folder-card:hover, 
-.file-grid:not(.list-view) .file-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-}
-/* iOS Photos style cards */
-.ios-item-icon {
-    width: 60px;
-    height: 60px;
-    overflow: hidden;
-    border-radius: 8px;
-}
-
-.ios-item-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Image ko crop karke square mein fit karega */
-    aspect-ratio: 1 / 1;
-}
-/* ==========================================
-   ⭐ WINDOWS-STYLE ADDRESS BAR ⭐
-   ========================================== */
-#breadcrumb {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-    background: rgba(120, 120, 120, 0.15); /* Halika background box banayega */
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.05);
-    font-size: 0.9rem;
-    margin-bottom: 15px;
-    overflow-x: auto;
-    white-space: nowrap;
-}
-
-/* Scrollbar chupane ke liye (taaki clean dikhe) */
-#breadcrumb::-webkit-scrollbar { display: none; }
-    
-.path-link {
-    color: #8c8c9a;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background 0.2s, color 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.path-link:hover {
-    background: rgba(255,255,255,0.1);
-    color: #ffffff;
-}
-
-.path-separator {
-    color: #666;
-    font-size: 0.7rem;
-    margin: 0 4px;
-}
-
-.path-current {
-    color: #ffffff;
-    font-weight: 600;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-/* ==========================================
-   ⭐ MOBILE BOTTOM ACTION BAR ⭐
-   ========================================== */
-
-/* Desktop par yeh bar nahi dikhega */
-.mobile-bottom-bar {
-    display: none;
-}
-
-/* Jab screen mobile size (768px se choti) ho jaye */
-@media (max-width: 768px) {
-    
-    /* Upar toolbar wale purane icon ko mobile par chupa do taaki jagah ban jaye */
-    /* Note: Agar aapke upar wale button ki ID/Class alag hai, toh usko display: none kar dena */
-    .top-toolbar .upload-btn, 
-    .top-toolbar .new-folder-btn {
-        display: none !important;
-    }
-
-    /* Address bar ko poori width do */
-    #breadcrumb {
-        width: 100%;
-        margin-right: 0;
-    }
-
-    /* Niche wala Bottom Bar Design */
-    .mobile-bottom-bar {
-        display: flex;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: #1e1e2a; /* Aapke theme ka dark color */
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 12px 15px;
-        z-index: 999;
-        box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
-        gap: 12px;
-        padding-bottom: env(safe-area-inset-bottom, 15px); /* iPhone ke bottom swipe bar se bachaane ke liye */
-    }
-
-    /* Bottom Bar ke Buttons ka design */
-    .mobile-bottom-bar button {
-        flex: 1; /* Dono buttons barabar 50-50 jagah lenge */
-        padding: 12px 0;
-        border-radius: 10px;
-        border: none;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: transform 0.1s, background 0.2s;
-    }
-
-    .mobile-bottom-bar button:active {
-        transform: scale(0.95); /* Click karne par chota sa animation */
-    }
-
-    /* New Folder Button */
-    .mobile-bottom-bar button:nth-child(1) {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-    }
-
-    /* Upload Button */
-    .mobile-bottom-bar button:nth-child(2) {
-        background: #6c63ff; /* Aapka main blue/purple accent color */
-        color: white;
-    }
-
-    /* File List ko neeche se thoda utha dein taaki files bar ke piche na chhupein */
-    #fileList {
-        padding-bottom: 90px !important; 
-    }
-}
