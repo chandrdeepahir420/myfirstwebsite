@@ -102,7 +102,16 @@
 <div class="modal-overlay" id="confirmModal" style="display:none; z-index:9500;"><div class="modal text-center"><h3 id="confirmTitle">Are you sure?</h3><div style="display:flex; gap:12px; margin-top:20px;"><button class="btn-ghost flex-1" style="margin:0;" onclick="document.getElementById('confirmModal').style.display='none'">Cancel</button><button class="btn-primary flex-1 bg-red-500" style="background:var(--danger);" id="confirmYesBtn">Yes</button></div></div></div>
 <div class="modal-overlay" id="renameModal" style="display:none;"><div class="modal"><h3>Rename</h3><input type="text" id="renameInput" class="rename-input"><div class="modal-actions"><button class="btn-ghost" style="margin:0;" onclick="document.getElementById('renameModal').style.display='none'">Cancel</button><button class="btn-primary" style="width:auto; margin:0; padding:10px 20px;" onclick="submitRename()">Save</button></div></div></div>
 <div class="modal-overlay preview-overlay" id="previewModal" style="display:none;"><button class="preview-close" onclick="document.getElementById('previewModal').style.display='none'"><i class="fa-solid fa-xmark"></i></button><div class="preview-content-box" id="previewContent"></div><div class="preview-title" id="previewTitle"></div></div>
-
+<div class="modal-overlay" id="createFolderModal" style="display:none; z-index:9500;">
+    <div class="modal text-center">
+        <h3 style="margin-bottom:15px;">Create New Folder</h3>
+        <input type="text" id="newFolderInput" class="rename-input" placeholder="Folder Name" autocomplete="off">
+        <div class="modal-actions" style="display:flex; gap:12px; margin-top:20px;">
+            <button class="btn-ghost flex-1" style="margin:0;" onclick="document.getElementById('createFolderModal').style.display='none'">Cancel</button>
+            <button class="btn-primary flex-1" style="margin:0;" onclick="submitCreateFolder()">Create</button>
+        </div>
+    </div>
+</div>
 <div class="modal-overlay" id="moveModal" style="display:none; z-index:9100;">
     <div class="modal">
         <h3>Move to...</h3>
