@@ -41,12 +41,12 @@
     
     <div id="step2" style="display:none">
       <div class="otp-inputs">
-          <input class="otp-box" type="text" id="otp1" name="otp1" maxlength="1" autocomplete="one-time-code">
-          <input class="otp-box" type="text" id="otp2" name="otp2" maxlength="1">
-          <input class="otp-box" type="text" id="otp3" name="otp3" maxlength="1">
-          <input class="otp-box" type="text" id="otp4" name="otp4" maxlength="1">
-          <input class="otp-box" type="text" id="otp5" name="otp5" maxlength="1">
-          <input class="otp-box" type="text" id="otp6" name="otp6" maxlength="1">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" id="otp1" name="otp1" maxlength="1" autocomplete="one-time-code">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" id="otp2" name="otp2" maxlength="1">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" id="otp3" name="otp3" maxlength="1">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" id="otp4" name="otp4" maxlength="1">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" id="otp5" name="otp5" maxlength="1">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" id="otp6" name="otp6" maxlength="1">
       </div>
       <button class="btn-primary" onclick="verifyOTP()">Verify</button>
       <div class="login-error" id="otpError"></div>
