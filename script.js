@@ -16,6 +16,9 @@ let isLoading = false;
 let hasMore = true;
 let autoScrollFrame = null;
 let scrollSpeedY = 0;
+let autoSelectX = 0; // Ungli ka X track karne ke liye
+let autoSelectY = 0; // Ungli ka Y track karne ke liye
+let isAutoSelecting = false;
 
 function applyTheme(t) {
     isDark = t === 'dark'; document.body.className = t;
@@ -64,21 +67,26 @@ function handleThumbError(imgElement, isVideo) {
 // ==========================================
 // ⭐ EDGE AUTO-SCROLL ENGINE (DRAG TO SELECT) ⭐
 // ==========================================
-function handleDragScroll(clientY) {
-    const edgeMargin = 80; // Screen ke top/bottom se kitne pixels par scroll shuru hoga
-    const maxSpeed = 20; // Scroll ki maximum speed
+// ==========================================
+// ⭐ ADVANCED EDGE AUTO-SCROLL ENGINE ⭐
+// ==========================================
+
+function handleDragScroll(clientX, clientY, isSelecting = false) {
+    autoSelectX = clientX;
+    autoSelectY = clientY;
+    isAutoSelecting = isSelecting;
+
+    const edgeMargin = 100; 
+    const maxSpeed = 25; 
     const viewportHeight = window.innerHeight;
 
     if (clientY < edgeMargin) {
-        // Upar ki taraf scroll karna
         let intensity = (edgeMargin - clientY) / edgeMargin;
         scrollSpeedY = -(maxSpeed * intensity);
     } else if (clientY > viewportHeight - edgeMargin) {
-        // Neeche ki taraf scroll karna
         let intensity = (edgeMargin - (viewportHeight - clientY)) / edgeMargin;
         scrollSpeedY = (maxSpeed * intensity);
     } else {
-        // Agar ungli beech mein hai, toh scroll rok do
         stopDragScroll();
         return;
     }
@@ -90,24 +98,42 @@ function handleDragScroll(clientY) {
 
 function autoScrollLoop() {
     if (scrollSpeedY !== 0) {
-        // ⭐ FIX: Window ki jagah fileList container ko scroll karein
         const gridContainer = document.getElementById('fileList');
         if (gridContainer) {
             gridContainer.scrollTop += scrollSpeedY;
+
+            // ⭐ THE MAGIC: Scroll hote waqt lagatar files ko select karna ⭐
+            if (isAutoSelecting) {
+                let checkY = autoSelectY;
+                const bottomLimit = window.innerHeight - 110; 
+                const topLimit = 100;
+                
+                if (checkY > bottomLimit) checkY = bottomLimit;
+                if (checkY < topLimit) checkY = topLimit;
+
+                const currentEl = document.elementFromPoint(autoSelectX, checkY);
+                if (currentEl) {
+                    const card = currentEl.closest('.file-card, .folder-card');
+                    if (card && !selectedIds.has(card.dataset.id)) {
+                        toggleSelect(card.dataset.id, card, true);
+                    }
+                }
+            }
         }
         autoScrollFrame = requestAnimationFrame(autoScrollLoop);
     } else {
         stopDragScroll();
     }
 }
+
 function stopDragScroll() {
     if (autoScrollFrame) {
         cancelAnimationFrame(autoScrollFrame);
         autoScrollFrame = null;
     }
     scrollSpeedY = 0;
+    isAutoSelecting = false; // Reset
 }
-
 // ==========================================
 // 2. CORE FUNCTIONS (Data Loading)
 // ==========================================
@@ -279,12 +305,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault(); 
                 const touch = e.touches[0];
                 
-                // ⭐ NAYA FIX: Selection point (X, Y) ko track karna
+                // Selection point (X, Y) ko track karna
                 let checkX = touch.clientX;
                 let checkY = touch.clientY;
                 
-                // Agar aapki ungli Action Bar par (screen ke bottom 100px) chali gayi hai, 
-                // toh selection sensor ko thoda upar (files ke upar) lock kar do
+                // Agar aapki ungli Action Bar par chali gayi hai, toh sensor ko thoda upar lock kar do
                 const bottomLimit = window.innerHeight - 110; 
                 if (checkY > bottomLimit) {
                     checkY = bottomLimit; 
@@ -296,17 +321,18 @@ window.addEventListener('DOMContentLoaded', () => {
                     checkY = topLimit;
                 }
 
-                // Ab actual finger position ki jagah clamped position (checkX, checkY) ko padho
+                // Actual finger position ki jagah clamped position ko padho
                 const currentEl = document.elementFromPoint(checkX, checkY);
                 if (currentEl) {
                     const card = currentEl.closest('.file-card, .folder-card');
                     if (card && !selectedIds.has(card.dataset.id)) toggleSelect(card.dataset.id, card, true); 
                 }
                 
-                // Lekin Auto-Scroll engine ko asli finger position hi chahiye taaki speed control ho sake
-                handleDragScroll(touch.clientY);
+                // ⭐ NAYA UPDATE YAHAN HAI: Engine ko X, Y aur "true" (Selection ON) bhejein
+                handleDragScroll(touch.clientX, touch.clientY, true);
             }
         }, { passive: false });
+        
         gridContainer.addEventListener('touchend', () => { 
             if (touchTimer) clearTimeout(touchTimer); 
             isTouchSelecting = false; document.body.classList.remove('is-selecting'); 
