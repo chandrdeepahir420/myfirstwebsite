@@ -19,14 +19,35 @@
   <div class="login-card">
     <div class="login-logo"><i class="fa-solid fa-cloud-arrow-up text-xl"></i></div>
     <h1>TeleDrive</h1><p class="login-sub">Secure Login</p>
-    <div id="step1">
-      <div class="input-group"><label>Username</label><input type="text" id="usernameInput" autocomplete="off"></div>
-      <div class="input-group"><label>Password</label><div class="pass-wrap"><input type="password" id="passwordInput"><button class="eye-btn" onclick="togglePass('passwordInput','eyeIcon')"><i class="fa-solid fa-eye" id="eyeIcon"></i></button></div></div>
+<div id="step1">
+      <div class="input-group">
+          <label for="usernameInput">Username</label>
+          <input type="text" id="usernameInput" name="username" autocomplete="username">
+      </div>
+      
+      <div class="input-group">
+          <label for="passwordInput">Password</label>
+          <div class="pass-wrap">
+              <input type="password" id="passwordInput" name="password" autocomplete="current-password">
+              <button class="eye-btn" aria-label="Toggle Password" onclick="togglePass('passwordInput','eyeIcon')">
+                  <i class="fa-solid fa-eye" id="eyeIcon"></i>
+              </button>
+          </div>
+      </div>
+      
       <button class="btn-primary" id="loginBtn" onclick="requestOTP()">Continue</button>
       <div class="login-error" id="loginError"></div>
     </div>
+    
     <div id="step2" style="display:none">
-      <div class="otp-inputs"><input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1"><input class="otp-box" maxlength="1"></div>
+      <div class="otp-inputs">
+          <input class="otp-box" type="text" id="otp1" name="otp1" maxlength="1" autocomplete="one-time-code">
+          <input class="otp-box" type="text" id="otp2" name="otp2" maxlength="1">
+          <input class="otp-box" type="text" id="otp3" name="otp3" maxlength="1">
+          <input class="otp-box" type="text" id="otp4" name="otp4" maxlength="1">
+          <input class="otp-box" type="text" id="otp5" name="otp5" maxlength="1">
+          <input class="otp-box" type="text" id="otp6" name="otp6" maxlength="1">
+      </div>
       <button class="btn-primary" onclick="verifyOTP()">Verify</button>
       <div class="login-error" id="otpError"></div>
     </div>
@@ -80,8 +101,17 @@
 
     <div id="settingsArea" style="display:none; max-width:400px; width:100%; margin:20px auto; background:var(--surface2); padding:24px; border-radius:16px; border:1px solid var(--border);">
         <h3 style="margin-bottom:20px; font-family:var(--font-head);"><i class="fa-solid fa-lock text-accent"></i> Reset Password</h3>
-        <div class="input-group"><label>Current Password</label><input type="password" id="currPass"></div>
-        <div class="input-group"><label>New Password</label><input type="password" id="newPass"></div>
+        
+        <div class="input-group">
+            <label for="currPass">Current Password</label>
+            <input type="password" id="currPass" name="currPass">
+        </div>
+        
+        <div class="input-group">
+            <label for="newPass">New Password</label>
+            <input type="password" id="newPass" name="newPass">
+        </div>
+        
         <button class="btn-primary" onclick="changePassword()">Update Secret Password</button>
     </div>
     
