@@ -265,13 +265,35 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const gridContainer = document.getElementById('fileList');
     if (gridContainer) {
+        // Scroll Pagination
         gridContainer.addEventListener('scroll', (e) => {
             if (gridContainer.scrollTop + gridContainer.clientHeight >= gridContainer.scrollHeight - 100) {
                 loadMoreItems();
             }
         });
 
-        let isDragging = false; let touchTimer = null; let isTouchSelecting = false;
+        // ==========================================
+        // ⭐ VARIABLES (Drag & Zoom Dono Ke Liye) ⭐
+        // ==========================================
+        let isDragging = false; 
+        let touchTimer = null; 
+        let isTouchSelecting = false;
+
+        let initialPinchDistance = 0;
+        let currentGridCols = localStorage.getItem('td_grid_cols') ? parseInt(localStorage.getItem('td_grid_cols')) : 3;
+        const MIN_COLS = 2; // Max Zoom IN
+        const MAX_COLS = 6; // Max Zoom OUT
+        let zoomCooldown = false;
+
+        // Start mein default grid size set karein
+        document.documentElement.style.setProperty('--grid-cols', currentGridCols);
+
+        // Zoom Helper Function
+        function applyGridZoom() {
+            document.documentElement.style.setProperty('--grid-cols', currentGridCols);
+            localStorage.setItem('td_grid_cols', currentGridCols);
+            if (navigator.vibrate) navigator.vibrate(40);
+        }
 
         // 🖱️ MOUSE EVENTS (PC)
         gridContainer.addEventListener('mousedown', (e) => {
@@ -281,21 +303,17 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // ⭐ NEW: PC par drag karte waqt scroll engine ko trigger karna
-        // 🖱️ MOUSE EVENTS (PC) FIX
         gridContainer.addEventListener('mousemove', (e) => {
             if (isDragging) {
-                // PC par bhi lagatar selection kaam kare
                 const currentEl = document.elementFromPoint(e.clientX, e.clientY);
                 if (currentEl) {
                     const card = currentEl.closest('.file-card, .folder-card');
                     if (card && !selectedIds.has(card.dataset.id)) toggleSelect(card.dataset.id, card, true); 
                 }
-                
-                // Engine ko X, Y aur "true" bhejein taaki auto-scroll theek se chale
                 handleDragScroll(e.clientX, e.clientY, true);
             }
         });
+
         gridContainer.addEventListener('mouseover', (e) => {
             if (!isDragging) return;
             const card = e.target.closest('.file-card, .folder-card');
@@ -304,12 +322,24 @@ window.addEventListener('DOMContentLoaded', () => {
 
         document.addEventListener('mouseup', () => { 
             isDragging = false; document.body.classList.remove('is-selecting'); 
-            stopDragScroll(); // ⭐ NEW: Scroll engine ko rokna
+            stopDragScroll(); 
         });
 
-
-        // 📱 TOUCH EVENTS (MOBILE)
+        // 📱 TOUCH EVENTS (MOBILE) - DRAG & ZOOM MERGED
         gridContainer.addEventListener('touchstart', (e) => {
+            // ⭐ ZOOM CHECK: Agar 2 ungliyan hain toh Zoom start karo
+            if (e.touches.length === 2) {
+                if (touchTimer) clearTimeout(touchTimer); // Selection timer rok do
+                isTouchSelecting = false; document.body.classList.remove('is-selecting');
+                
+                initialPinchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                return; // Yahin se wapas mud jao, single touch wala code mat chalao
+            }
+
+            // ⭐ DRAG CHECK: Agar 1 ungli hai toh Selection timer start karo
             const card = e.target.closest('.file-card, .folder-card');
             if (card && !e.target.closest('.select-check') && !e.target.closest('.three-dot-btn')) {
                 touchTimer = setTimeout(() => {
@@ -321,35 +351,50 @@ window.addEventListener('DOMContentLoaded', () => {
         }, { passive: false });
 
         gridContainer.addEventListener('touchmove', (e) => {
+            // ⭐ ZOOM ACTION (2 Fingers)
+            if (e.touches.length === 2 && !gridContainer.classList.contains('list-view')) {
+                e.preventDefault(); 
+                if (touchTimer) clearTimeout(touchTimer);
+                
+                if (zoomCooldown) return;
+
+                const currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const diff = currentDistance - initialPinchDistance;
+
+                if (Math.abs(diff) > 45) {
+                    if (diff > 0 && currentGridCols > MIN_COLS) { currentGridCols--; applyGridZoom(); } 
+                    else if (diff < 0 && currentGridCols < MAX_COLS) { currentGridCols++; applyGridZoom(); }
+
+                    initialPinchDistance = currentDistance; zoomCooldown = true;
+                    setTimeout(() => zoomCooldown = false, 300);
+                }
+                return; // Zoom ho gaya, ab aage ka code mat chalao
+            }
+
+            // ⭐ DRAG ACTION (1 Finger Selection)
             if (touchTimer) clearTimeout(touchTimer);
             if (isTouchSelecting) {
                 e.preventDefault(); 
                 const touch = e.touches[0];
                 
-                // Selection point (X, Y) ko track karna
                 let checkX = touch.clientX;
                 let checkY = touch.clientY;
                 
-                // Agar aapki ungli Action Bar par chali gayi hai, toh sensor ko thoda upar lock kar do
                 const bottomLimit = window.innerHeight - 110; 
-                if (checkY > bottomLimit) {
-                    checkY = bottomLimit; 
-                }
+                if (checkY > bottomLimit) checkY = bottomLimit; 
                 
-                // Agar ungli sabse upar chali jaye, toh sensor ko top par lock kar do
                 const topLimit = 100;
-                if (checkY < topLimit) {
-                    checkY = topLimit;
-                }
+                if (checkY < topLimit) checkY = topLimit;
 
-                // Actual finger position ki jagah clamped position ko padho
                 const currentEl = document.elementFromPoint(checkX, checkY);
                 if (currentEl) {
                     const card = currentEl.closest('.file-card, .folder-card');
                     if (card && !selectedIds.has(card.dataset.id)) toggleSelect(card.dataset.id, card, true); 
                 }
                 
-                // ⭐ NAYA UPDATE YAHAN HAI: Engine ko X, Y aur "true" (Selection ON) bhejein
                 handleDragScroll(touch.clientX, touch.clientY, true);
             }
         }, { passive: false });
@@ -357,13 +402,13 @@ window.addEventListener('DOMContentLoaded', () => {
         gridContainer.addEventListener('touchend', () => { 
             if (touchTimer) clearTimeout(touchTimer); 
             isTouchSelecting = false; document.body.classList.remove('is-selecting'); 
-            stopDragScroll(); // ⭐ NEW: Scroll engine ko rokna
+            stopDragScroll(); 
         });
         
         gridContainer.addEventListener('touchcancel', () => { 
             if (touchTimer) clearTimeout(touchTimer); 
             isTouchSelecting = false; document.body.classList.remove('is-selecting'); 
-            stopDragScroll(); // ⭐ NEW: Scroll engine ko rokna
+            stopDragScroll(); 
         });
     }
 });
