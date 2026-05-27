@@ -69,12 +69,35 @@ async function loadCurrentFolder() {
     currentPage = 1;
     hasMore = true;
     allFiles = [];
+
+    // ==========================================
+    // ⭐ INSTANT LOADING SPINNER LOGIC ⭐
+    // ==========================================
+    const listEl = document.getElementById('fileList');
+    const emptyEl = document.getElementById('emptyState');
+    
+    if (listEl) {
+        // Agar empty state icon dikh raha hai toh use turant chhupa do
+        if (emptyEl) emptyEl.style.display = 'none';
+        
+        // Grid layout hatakar list-view lagao taaki spinner center mein aaye
+        listEl.className = 'file-grid list-view'; 
+        
+        // Turant ghoomta hua spinner screen par daal do (Bina 1 sec wait kiye)
+        listEl.innerHTML = `
+            <div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: var(--accent); animation: fadeIn 0.2s ease;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; margin-bottom: 15px;"></i>
+                <p style="color: var(--text-muted); font-size: 1rem; font-weight: 500;">Loading folder...</p>
+            </div>
+        `;
+    }
+    // ==========================================
     
     try {
         const token = localStorage.getItem('td_token'); 
         const headers = token ? getHeaders() : {};
         
-        // FOLDER aur FILES dono ko specific currentFolderId ke saath fetch karein
+        // API Calls (Isme thoda time lagega, tab tak spinner ghoomta rahega)
         const [filesRes, foldersRes] = await Promise.all([ 
             fetch(`/files?folderId=${currentFolderId}&page=1&limit=100`, {headers}), 
             fetch(`/folders?parentId=${currentFolderId}`, {headers}) 
@@ -83,10 +106,20 @@ async function loadCurrentFolder() {
         allFiles = await filesRes.json(); 
         foldersData = await foldersRes.json(); 
         
-        // Render both
+        // Data aate hi renderItems chalega aur spinner ko overwrite kar dega
         renderItems(foldersData, allFiles, false); 
     } catch (e) { 
         console.error("Load Error:", e); 
+        
+        // Agar internet band hai ya error aayi, toh error message dikhao
+        if (listEl) {
+            listEl.innerHTML = `
+                <div style="width: 100%; text-align: center; padding: 50px; color: var(--danger);">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem;"></i>
+                    <p style="margin-top: 15px; font-weight: 500;">Failed to load folder. Please check your internet connection.</p>
+                </div>
+            `;
+        }
     }
 }
 async function loadMoreItems() {
