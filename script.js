@@ -102,20 +102,32 @@ function autoScrollLoop() {
         if (gridContainer) {
             gridContainer.scrollTop += scrollSpeedY;
 
-            // ⭐ THE MAGIC: Scroll hote waqt lagatar files ko select karna ⭐
+            // ⭐ THE MAGIC: Bulletproof Anti-Skip Selection ⭐
             if (isAutoSelecting) {
                 let checkY = autoSelectY;
-                const bottomLimit = window.innerHeight - 110; 
-                const topLimit = 100;
+                
+                // Sensor ko bottom bar se aur thoda upar rakhein (150px) 
+                // Taaki kisi bhi UI element ka z-index use block na kare
+                const bottomLimit = window.innerHeight - 150; 
+                const topLimit = 120;
                 
                 if (checkY > bottomLimit) checkY = bottomLimit;
                 if (checkY < topLimit) checkY = topLimit;
 
-                const currentEl = document.elementFromPoint(autoSelectX, checkY);
-                if (currentEl) {
-                    const card = currentEl.closest('.file-card, .folder-card');
-                    if (card && !selectedIds.has(card.dataset.id)) {
-                        toggleSelect(card.dataset.id, card, true);
+                // Gap Skipping se bachne ke liye hum ungli ke aas-paas 3 points check karenge
+                // (Center, aur uske 30px left aur right)
+                const checkPointsX = [autoSelectX, autoSelectX - 30, autoSelectX + 30];
+                
+                for (let px of checkPointsX) {
+                    // Screen se bahar ke points ignore karein
+                    if (px > 0 && px < window.innerWidth) {
+                        const currentEl = document.elementFromPoint(px, checkY);
+                        if (currentEl) {
+                            const card = currentEl.closest('.file-card, .folder-card');
+                            if (card && !selectedIds.has(card.dataset.id)) {
+                                toggleSelect(card.dataset.id, card, true);
+                            }
+                        }
                     }
                 }
             }
@@ -125,7 +137,6 @@ function autoScrollLoop() {
         stopDragScroll();
     }
 }
-
 function stopDragScroll() {
     if (autoScrollFrame) {
         cancelAnimationFrame(autoScrollFrame);
@@ -271,10 +282,20 @@ window.addEventListener('DOMContentLoaded', () => {
         });
 
         // ⭐ NEW: PC par drag karte waqt scroll engine ko trigger karna
+        // 🖱️ MOUSE EVENTS (PC) FIX
         gridContainer.addEventListener('mousemove', (e) => {
-            if (isDragging) handleDragScroll(e.clientY);
+            if (isDragging) {
+                // PC par bhi lagatar selection kaam kare
+                const currentEl = document.elementFromPoint(e.clientX, e.clientY);
+                if (currentEl) {
+                    const card = currentEl.closest('.file-card, .folder-card');
+                    if (card && !selectedIds.has(card.dataset.id)) toggleSelect(card.dataset.id, card, true); 
+                }
+                
+                // Engine ko X, Y aur "true" bhejein taaki auto-scroll theek se chale
+                handleDragScroll(e.clientX, e.clientY, true);
+            }
         });
-
         gridContainer.addEventListener('mouseover', (e) => {
             if (!isDragging) return;
             const card = e.target.closest('.file-card, .folder-card');
