@@ -68,10 +68,12 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 .search-box button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem; }
 
 .file-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; width: 100%; }
-.file-grid { flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 4px; display: grid; gap: 12px; align-content: start; width: 100%; touch-action: cubic-bezier(0.1, 0.5, 0.5, 1); }
-.file-grid:not(.list-view) { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+/* ⭐ 1. DYNAMIC COLUMNS & GAP FIX FOR PINCH-TO-ZOOM ⭐ */
+.file-grid { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px; display: grid; gap: 8px; align-content: start; width: 100%; touch-action: cubic-bezier(0.1, 0.5, 0.5, 1); }
+.file-grid:not(.list-view) { grid-template-columns: repeat(var(--grid-cols, 3), minmax(0, 1fr)); }
 
-.folder-card, .file-card { position: relative; display: flex; cursor: pointer; user-select: none; border-radius: 12px; }
+/* ⭐ 2. CARD WIDTH LIMIT FIX TO PREVENT OVERLAP ⭐ */
+.folder-card, .file-card { position: relative; display: flex; cursor: pointer; user-select: none; border-radius: 12px; width: 100%; overflow: hidden; }
 .list-view .folder-card, .list-view .file-card { flex-direction: row; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); gap: 14px; background: transparent; border-radius: 0; }
 .list-view .folder-card.selected, .list-view .file-card.selected { background: rgba(108,99,255,0.1); border-radius: 8px; border-bottom: transparent; }
 
@@ -90,13 +92,16 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 .three-dot-btn { background: none; border: none; color: var(--text-muted); font-size: 1.25rem; padding: 8px 12px; cursor: pointer; margin-left: auto; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; z-index: 10; }
 .three-dot-btn:hover { background: var(--surface2); color: var(--accent); }
 .item-details { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
-.item-name { font-size: 1.05rem; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: var(--text); }
+
+/* ⭐ 3. TEXT OVERLAP & PADDING FIX ⭐ */
+.item-name { font-size: 1.05rem; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: var(--text); width: 100%; padding: 0 4px; }
 .item-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; }
 
-.file-grid:not(.list-view) .folder-card, .file-grid:not(.list-view) .file-card { flex-direction: column; align-items: center; padding: 16px 10px 40px; gap: 10px; text-align: center; border: 1px solid transparent; background: transparent; }
+/* ⭐ 4. RESPONSIVE ZOOM FOR ICONS (Aspect Ratio added) ⭐ */
+.file-grid:not(.list-view) .folder-card, .file-grid:not(.list-view) .file-card { flex-direction: column; align-items: center; padding: 12px 6px 36px; gap: 8px; text-align: center; border: 1px solid transparent; background: transparent; width: 100%; overflow: visible; }
 .file-grid:not(.list-view) .folder-card:hover, .file-grid:not(.list-view) .file-card:hover { background: var(--surface2); border-color: var(--border); transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
-.file-grid:not(.list-view) .ios-item-icon { width: 70px; height: 70px; border-radius: 16px; font-size: 2.5rem; }
-.file-grid:not(.list-view) .item-name { font-size: 0.9rem; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-grid:not(.list-view) .ios-item-icon { width: 100%; max-width: 75px; aspect-ratio: 1/1; height: auto; border-radius: 16px; font-size: 2.5rem; }
+.file-grid:not(.list-view) .item-name { font-size: 0.85rem; width: 100%; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 .file-grid:not(.list-view) .item-meta { display: none; }
 .file-grid:not(.list-view) .three-dot-btn { position: absolute; bottom: 5px; right: 5px; padding: 6px; font-size: 1.1rem; }
 
