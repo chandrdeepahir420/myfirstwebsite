@@ -278,16 +278,35 @@ window.addEventListener('DOMContentLoaded', () => {
             if (isTouchSelecting) {
                 e.preventDefault(); 
                 const touch = e.touches[0];
-                const currentEl = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                // ⭐ NAYA FIX: Selection point (X, Y) ko track karna
+                let checkX = touch.clientX;
+                let checkY = touch.clientY;
+                
+                // Agar aapki ungli Action Bar par (screen ke bottom 100px) chali gayi hai, 
+                // toh selection sensor ko thoda upar (files ke upar) lock kar do
+                const bottomLimit = window.innerHeight - 110; 
+                if (checkY > bottomLimit) {
+                    checkY = bottomLimit; 
+                }
+                
+                // Agar ungli sabse upar chali jaye, toh sensor ko top par lock kar do
+                const topLimit = 100;
+                if (checkY < topLimit) {
+                    checkY = topLimit;
+                }
+
+                // Ab actual finger position ki jagah clamped position (checkX, checkY) ko padho
+                const currentEl = document.elementFromPoint(checkX, checkY);
                 if (currentEl) {
                     const card = currentEl.closest('.file-card, .folder-card');
                     if (card && !selectedIds.has(card.dataset.id)) toggleSelect(card.dataset.id, card, true); 
                 }
-                // ⭐ NEW: Mobile par swipe karte waqt scroll engine ko trigger karna
+                
+                // Lekin Auto-Scroll engine ko asli finger position hi chahiye taaki speed control ho sake
                 handleDragScroll(touch.clientY);
             }
         }, { passive: false });
-
         gridContainer.addEventListener('touchend', () => { 
             if (touchTimer) clearTimeout(touchTimer); 
             isTouchSelecting = false; document.body.classList.remove('is-selecting'); 
