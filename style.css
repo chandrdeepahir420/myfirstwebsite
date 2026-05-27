@@ -68,11 +68,30 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 .search-box button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem; }
 
 .file-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; width: 100%; }
-/* ⭐ 1. DYNAMIC COLUMNS & GAP FIX FOR PINCH-TO-ZOOM ⭐ */
 /* ⭐ 1. DYNAMIC COLUMNS & GAP FIX (Zoom Ke Liye) ⭐ */
-.file-grid { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px; display: grid; gap: 8px; align-content: start; width: 100%; touch-action: cubic-bezier(0.1, 0.5, 0.5, 1); }
-.file-grid:not(.list-view) { grid-template-columns: repeat(var(--grid-cols, 3), minmax(0, 1fr)); }
+.file-grid { 
+    flex: 1; 
+    overflow-y: auto; 
+    overflow-x: hidden; 
+    padding: 10px; 
+    display: grid; 
+    gap: 8px; 
+    align-content: start; 
+    width: 100%; 
+    touch-action: cubic-bezier(0.1, 0.5, 0.5, 1); 
+}
 
+/* 📱 MOBILE: Default Pinch-to-Zoom Grid */
+.file-grid:not(.list-view) { 
+    grid-template-columns: repeat(var(--grid-cols, 3), minmax(0, 1fr)); 
+}
+
+/* 💻 LAPTOP & PC: Auto-Responsive Grid (Aapka purana favorite layout) */
+@media (min-width: 800px) {
+    .file-grid:not(.list-view) { 
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
+    }
+}
 /* ⭐ 2. BASE CARDS ⭐ */
 .folder-card, .file-card { position: relative; display: flex; cursor: pointer; user-select: none; border-radius: 12px; }
 
