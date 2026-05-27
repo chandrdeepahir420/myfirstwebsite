@@ -39,7 +39,25 @@ function formatDate(dateString) {
     const d = new Date(dateString);
     return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear().toString().slice(-2)}`;
 }
-
+// ==========================================
+// ⭐ THUMBNAIL FALLBACK HANDLER ⭐
+// ==========================================
+function handleThumbError(imgElement, isVideo) {
+    // 1. Broken image ko hide kar do
+    imgElement.style.display = 'none';
+    
+    // 2. Image ke parent box (ios-item-icon) ko pakdo
+    const parent = imgElement.parentElement;
+    
+    // 3. File type ke hisaab se CSS class aur Icon laga do
+    if (isVideo) {
+        parent.className = 'ios-item-icon icon-video';
+        parent.innerHTML = '<i class="fa-solid fa-film"></i>';
+    } else {
+        parent.className = 'ios-item-icon icon-img';
+        parent.innerHTML = '<i class="fa-solid fa-image"></i>';
+    }
+}
 // ==========================================
 // 2. CORE FUNCTIONS (Data Loading)
 // ==========================================
@@ -411,9 +429,9 @@ function renderItems(folders, files, isTrash) {
         let mediaContent = `<i class="fa-solid ${style.icon}"></i>`; 
         
         if (images.includes(ext)) {
-            mediaContent = `<img src="/download/${f._id}?token=${token}" loading="lazy" alt="thumbnail" style="width:100%; height:100%; object-fit:cover;">`;
-        } 
-
+            // ⭐ CRITICAL FIX: onerror event add kiya gaya hai
+            mediaContent = `<img src="/download/${f._id}?token=${token}" loading="lazy" alt="thumbnail" style="width:100%; height:100%; object-fit:cover;" onerror="handleThumbError(this, false)">`;
+        }
         d.innerHTML = `
             <div class="select-check">✓</div>
             <div class="ios-item-icon ${style.bg}">${mediaContent}</div>
