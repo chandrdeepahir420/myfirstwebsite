@@ -69,21 +69,33 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 
 .file-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; width: 100%; }
 /* ⭐ 1. DYNAMIC COLUMNS & GAP FIX FOR PINCH-TO-ZOOM ⭐ */
+/* ⭐ 1. DYNAMIC COLUMNS & GAP FIX (Zoom Ke Liye) ⭐ */
 .file-grid { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px; display: grid; gap: 8px; align-content: start; width: 100%; touch-action: cubic-bezier(0.1, 0.5, 0.5, 1); }
 .file-grid:not(.list-view) { grid-template-columns: repeat(var(--grid-cols, 3), minmax(0, 1fr)); }
 
-/* ⭐ 2. CARD WIDTH LIMIT FIX TO PREVENT OVERLAP ⭐ */
-.folder-card, .file-card { position: relative; display: flex; cursor: pointer; user-select: none; border-radius: 12px; width: 100%; overflow: hidden; }
-.list-view .folder-card, .list-view .file-card { flex-direction: row; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); gap: 14px; background: transparent; border-radius: 0; }
+/* ⭐ 2. BASE CARDS ⭐ */
+.folder-card, .file-card { position: relative; display: flex; cursor: pointer; user-select: none; border-radius: 12px; }
+
+/* ⭐ 3. LIST VIEW (Restored 100% to Old Layout) ⭐ */
+.list-view .folder-card, .list-view .file-card { flex-direction: row; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); gap: 14px; background: transparent; border-radius: 0; width: 100%; }
 .list-view .folder-card.selected, .list-view .file-card.selected { background: rgba(108,99,255,0.1); border-radius: 8px; border-bottom: transparent; }
 
+/* ⭐ 4. GRID VIEW CARDS ⭐ */
+.file-grid:not(.list-view) .folder-card, .file-grid:not(.list-view) .file-card { flex-direction: column; align-items: center; padding: 12px 6px 36px; gap: 8px; text-align: center; border: 1px solid transparent; background: transparent; width: 100%; }
+.file-grid:not(.list-view) .folder-card:hover, .file-grid:not(.list-view) .file-card:hover { background: var(--surface2); border-color: var(--border); transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+
+/* SELECT CHECKBOX */
 .select-check { width: 22px; height: 22px; border: 1.5px solid var(--text-muted); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: transparent; font-size: 0.75rem; flex-shrink: 0; transition: all 0.2s; margin-right: 2px; }
 .list-view .select-check { position: relative; }
 .file-grid:not(.list-view) .select-check { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.5); border-color: white; z-index: 5; }
 .selected .select-check { background: var(--accent); border-color: var(--accent); color: white; }
 
+/* ICONS */
 .ios-item-icon { width: 46px; height: 46px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.6rem; flex-shrink: 0; overflow:hidden; }
 .ios-item-icon img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: 1/1; }
+/* Grid mode icon resize */
+.file-grid:not(.list-view) .ios-item-icon { width: 100%; max-width: 75px; aspect-ratio: 1/1; height: auto; border-radius: 16px; font-size: 2.5rem; }
+
 .icon-folder { background: var(--ios-folder); color: white; }
 .icon-file { background: white; color: var(--accent); }
 .icon-img { background: #34c759; color: white; }
@@ -91,22 +103,18 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--text);
 
 .three-dot-btn { background: none; border: none; color: var(--text-muted); font-size: 1.25rem; padding: 8px 12px; cursor: pointer; margin-left: auto; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; z-index: 10; }
 .three-dot-btn:hover { background: var(--surface2); color: var(--accent); }
-.item-details { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
-
-/* ⭐ 3. TEXT OVERLAP & PADDING FIX ⭐ */
-.item-name { font-size: 1.05rem; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: var(--text); width: 100%; padding: 0 4px; }
-.item-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; }
-
-/* ⭐ 4. RESPONSIVE ZOOM FOR ICONS (Aspect Ratio added) ⭐ */
-.file-grid:not(.list-view) .folder-card, .file-grid:not(.list-view) .file-card { flex-direction: column; align-items: center; padding: 12px 6px 36px; gap: 8px; text-align: center; border: 1px solid transparent; background: transparent; width: 100%; overflow: visible; }
-.file-grid:not(.list-view) .folder-card:hover, .file-grid:not(.list-view) .file-card:hover { background: var(--surface2); border-color: var(--border); transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
-.file-grid:not(.list-view) .ios-item-icon { width: 100%; max-width: 75px; aspect-ratio: 1/1; height: auto; border-radius: 16px; font-size: 2.5rem; }
-.file-grid:not(.list-view) .item-name { font-size: 0.85rem; width: 100%; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
-.file-grid:not(.list-view) .item-meta { display: none; }
 .file-grid:not(.list-view) .three-dot-btn { position: absolute; bottom: 5px; right: 5px; padding: 6px; font-size: 1.1rem; }
 
-.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 10px; color: var(--text-muted); text-align: center; }
+/* ⭐ 5. THE MAGIC FIX FOR TEXT OVERLAP (min-width: 0) ⭐ */
+.item-details { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; min-width: 0; width: 100%; }
 
+.item-name { font-size: 1.05rem; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: var(--text); width: 100%; }
+.file-grid:not(.list-view) .item-name { font-size: 0.85rem; text-align: center; }
+
+.item-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; }
+.file-grid:not(.list-view) .item-meta { display: none; }
+
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 10px; color: var(--text-muted); text-align: center; }
 /* OVERLAYS & ACTION BAR */
 .floating-action-bar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); padding: 12px 20px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(108,99,255,0.4); z-index: 1000; color: white; }
 .ab-btn { background: rgba(0,0,0,0.2); border: none; padding: 8px 14px; border-radius: 8px; color: white; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
