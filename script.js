@@ -14,6 +14,8 @@ let activeUploads = [];
 let currentPage = 1;
 let isLoading = false;
 let hasMore = true;
+let autoScrollFrame = null;
+let scrollSpeedY = 0;
 
 function applyTheme(t) {
     isDark = t === 'dark'; document.body.className = t;
@@ -58,6 +60,54 @@ function handleThumbError(imgElement, isVideo) {
         parent.innerHTML = '<i class="fa-solid fa-image"></i>';
     }
 }
+
+// ==========================================
+// ⭐ EDGE AUTO-SCROLL ENGINE (DRAG TO SELECT) ⭐
+// ==========================================
+function handleDragScroll(clientY) {
+    const edgeMargin = 80; // Screen ke top/bottom se kitne pixels par scroll shuru hoga
+    const maxSpeed = 20; // Scroll ki maximum speed
+    const viewportHeight = window.innerHeight;
+
+    if (clientY < edgeMargin) {
+        // Upar ki taraf scroll karna
+        let intensity = (edgeMargin - clientY) / edgeMargin;
+        scrollSpeedY = -(maxSpeed * intensity);
+    } else if (clientY > viewportHeight - edgeMargin) {
+        // Neeche ki taraf scroll karna
+        let intensity = (edgeMargin - (viewportHeight - clientY)) / edgeMargin;
+        scrollSpeedY = (maxSpeed * intensity);
+    } else {
+        // Agar ungli beech mein hai, toh scroll rok do
+        stopDragScroll();
+        return;
+    }
+
+    if (!autoScrollFrame) {
+        autoScrollLoop();
+    }
+}
+
+function autoScrollLoop() {
+    if (scrollSpeedY !== 0) {
+        // ⭐ FIX: Window ki jagah fileList container ko scroll karein
+        const gridContainer = document.getElementById('fileList');
+        if (gridContainer) {
+            gridContainer.scrollTop += scrollSpeedY;
+        }
+        autoScrollFrame = requestAnimationFrame(autoScrollLoop);
+    } else {
+        stopDragScroll();
+    }
+}
+function stopDragScroll() {
+    if (autoScrollFrame) {
+        cancelAnimationFrame(autoScrollFrame);
+        autoScrollFrame = null;
+    }
+    scrollSpeedY = 0;
+}
+
 // ==========================================
 // 2. CORE FUNCTIONS (Data Loading)
 // ==========================================
@@ -186,19 +236,32 @@ window.addEventListener('DOMContentLoaded', () => {
 
         let isDragging = false; let touchTimer = null; let isTouchSelecting = false;
 
+        // 🖱️ MOUSE EVENTS (PC)
         gridContainer.addEventListener('mousedown', (e) => {
             const card = e.target.closest('.file-card, .folder-card');
             if (card && !e.target.closest('.select-check') && !e.target.closest('.three-dot-btn')) {
                 isDragging = true; document.body.classList.add('is-selecting');
             }
         });
+
+        // ⭐ NEW: PC par drag karte waqt scroll engine ko trigger karna
+        gridContainer.addEventListener('mousemove', (e) => {
+            if (isDragging) handleDragScroll(e.clientY);
+        });
+
         gridContainer.addEventListener('mouseover', (e) => {
             if (!isDragging) return;
             const card = e.target.closest('.file-card, .folder-card');
             if (card && !selectedIds.has(card.dataset.id)) toggleSelect(card.dataset.id, card, true);
         });
-        document.addEventListener('mouseup', () => { isDragging = false; document.body.classList.remove('is-selecting'); });
 
+        document.addEventListener('mouseup', () => { 
+            isDragging = false; document.body.classList.remove('is-selecting'); 
+            stopDragScroll(); // ⭐ NEW: Scroll engine ko rokna
+        });
+
+
+        // 📱 TOUCH EVENTS (MOBILE)
         gridContainer.addEventListener('touchstart', (e) => {
             const card = e.target.closest('.file-card, .folder-card');
             if (card && !e.target.closest('.select-check') && !e.target.closest('.three-dot-btn')) {
@@ -220,14 +283,24 @@ window.addEventListener('DOMContentLoaded', () => {
                     const card = currentEl.closest('.file-card, .folder-card');
                     if (card && !selectedIds.has(card.dataset.id)) toggleSelect(card.dataset.id, card, true); 
                 }
+                // ⭐ NEW: Mobile par swipe karte waqt scroll engine ko trigger karna
+                handleDragScroll(touch.clientY);
             }
         }, { passive: false });
 
-        gridContainer.addEventListener('touchend', () => { if (touchTimer) clearTimeout(touchTimer); isTouchSelecting = false; document.body.classList.remove('is-selecting'); });
-        gridContainer.addEventListener('touchcancel', () => { if (touchTimer) clearTimeout(touchTimer); isTouchSelecting = false; document.body.classList.remove('is-selecting'); });
+        gridContainer.addEventListener('touchend', () => { 
+            if (touchTimer) clearTimeout(touchTimer); 
+            isTouchSelecting = false; document.body.classList.remove('is-selecting'); 
+            stopDragScroll(); // ⭐ NEW: Scroll engine ko rokna
+        });
+        
+        gridContainer.addEventListener('touchcancel', () => { 
+            if (touchTimer) clearTimeout(touchTimer); 
+            isTouchSelecting = false; document.body.classList.remove('is-selecting'); 
+            stopDragScroll(); // ⭐ NEW: Scroll engine ko rokna
+        });
     }
 });
-
 // ==========================================
 // 4. UI COMPONENTS & NAVIGATION
 // ==========================================
