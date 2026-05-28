@@ -1182,6 +1182,7 @@ async function bulkDownload() {
         if (countTextElement) countTextElement.innerText = originalText;
         if (typeof clearSelection === 'function') clearSelection();
     }
+}    
 // ==========================================
 // ⭐ CUSTOM CREATE FOLDER LOGIC ⭐
 // ==========================================
