@@ -1551,3 +1551,49 @@ function skipSecuritySetup() {
     if(modal) modal.style.display = 'none';
     localStorage.setItem('td_security_prompted', 'true'); 
 }
+// ==========================================
+// ⭐ FACE ID UNLOCK ENGINE (App Khulte Waqt) ⭐
+// ==========================================
+
+async function unlockWithFaceID() {
+    try {
+        const publicKeyCredentialRequestOptions = {
+            challenge: bufferDecode("random-secure-challenge-string"), // Setup wala same challenge
+            rpId: window.location.hostname,
+            userVerification: "required", // Face ID ya PIN pass hona chahiye
+            timeout: 60000
+        };
+
+        const assertion = await navigator.credentials.get({
+            publicKey: publicKeyCredentialRequestOptions
+        });
+
+        // Agar Face ID match ho gaya
+        if (assertion) {
+            // Lock screen hata do aur app khol do
+            document.getElementById('appLockScreen').style.display = 'none';
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+    } catch (err) {
+        console.error("Face ID Unlock Error:", err);
+        // Agar Face ID cancel ho jaye ya fail ho, toh Lock Screen wahi rahegi
+        // User Lock Screen par bane "Unlock Now" button ko dabakar wapas try kar sakta hai
+    }
+}
+
+// ⭐ APP START HOTE HI LOCK CHECK KAREIN ⭐
+window.addEventListener('DOMContentLoaded', () => {
+    const isFaceIdEnabled = localStorage.getItem('td_faceid_enabled') === 'true';
+    const lockScreen = document.getElementById('appLockScreen');
+
+    if (isFaceIdEnabled && lockScreen) {
+        // 1. App ko turant Lock Screen se cover kar do
+        lockScreen.style.display = 'flex';
+        
+        // 2. UI load hone ke theek aadhe second baad Face ID popup trigger kar do
+        setTimeout(unlockWithFaceID, 500); 
+    } else if (lockScreen) {
+        // Agar Face ID setup nahi hai, toh Lock screen ko chupchaap hata do
+        lockScreen.style.display = 'none';
+    }
+});
