@@ -1149,7 +1149,58 @@ async function bulkDownload() {
 }// ==========================================
 // ⭐ CUSTOM CREATE FOLDER LOGIC ⭐
 // ==========================================
+// ==========================================
+// ⭐ AUTO-LOGOUT & SESSION TIMEOUT ENGINE ⭐
+// ==========================================
 
+let inactivityTimer = null;
+const TIMEOUT_MINUTES = 15; // ⏱️ Yahan aap time set kar sakte hain (15 minutes default)
+const TIMEOUT_MS = TIMEOUT_MINUTES * 60 * 1000;
+
+// Yeh function timer ko wapas Zero (0) se shuru karta hai
+function resetInactivityTimer() {
+    // Agar user logged in nahi hai, toh timer mat chalao
+    const isLoggedIn = localStorage.getItem('td_token') || sessionStorage.getItem('td_auth') === 'true';
+    if (!isLoggedIn) return;
+
+    // Purana timer cancel karo aur naya timer shuru karo
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+    
+    inactivityTimer = setTimeout(autoLogoutUser, TIMEOUT_MS);
+}
+
+// Jab timer expire ho jayega, tab yeh function chalega
+function autoLogoutUser() {
+    // 1. Saare tokens aur login data delete kar do
+    localStorage.removeItem('td_token');
+    sessionStorage.removeItem('td_auth');
+    
+    // (Optional) Agar user ka koi aur sensitive data local storage mein hai toh use bhi remove kar sakte hain
+    // localStorage.removeItem('td_user_data');
+
+    // 2. Alert dikhao ki session expire ho gaya hai
+    alert("🔒 Session Expired!\nYou have been logged out due to inactivity for security reasons.");
+
+    // 3. Page ko reload kar do (Yeh sabse safe tarika hai, isse memory clear ho jati hai aur app wapas Login screen par chali jati hai)
+    window.location.reload();
+}
+
+// 👁️ ACTIVITY TRACKERS (Browser in harqaton par nazar rakhega)
+// Jaise hi inme se kuch bhi hoga, timer wapas 15 minutes par reset ho jayega
+const userActivityEvents = [
+    'mousemove', 'mousedown', 'keypress', 
+    'touchmove', 'touchstart', 'scroll', 'click'
+];
+
+userActivityEvents.forEach(event => {
+    // { passive: true } lagane se scroll aur touch smooth rehta hai, app hang nahi hoti
+    document.addEventListener(event, resetInactivityTimer, { passive: true });
+});
+
+// App load hote hi pehli baar timer start karne ke liye
+window.addEventListener('DOMContentLoaded', () => {
+    resetInactivityTimer();
+});
 function createFolder() { 
     // Agar mobile FAB menu open hai, toh use pehle close kardo
     const fabMenu = document.getElementById('fabMenu');
