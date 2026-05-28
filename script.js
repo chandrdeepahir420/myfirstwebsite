@@ -1187,17 +1187,27 @@ const TIMEOUT_MINUTES = 15; // ⏱️ Yahan aap time set kar sakte hain (15 minu
 const TIMEOUT_MS = TIMEOUT_MINUTES * 60 * 1000;
 
 // Yeh function timer ko wapas Zero (0) se shuru karta hai
+// 📱 Check if user is on a Mobile App / Phone
+function isMobileApp() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) || 
+           window.matchMedia('(display-mode: standalone)').matches;
+}
+
+// ⏱️ Updated Timer: Sirf PC par chalega, Mobile par hamesha login rahega
 function resetInactivityTimer() {
-    // Agar user logged in nahi hai, toh timer mat chalao
+    // Agar mobile hai, toh timer delete kar do aur yahin se wapas mud jao (No Logout)
+    if (isMobileApp()) {
+        if (inactivityTimer) clearTimeout(inactivityTimer);
+        return; 
+    }
+
+    // Agar PC/Laptop hai, toh normal timeout chalao
     const isLoggedIn = localStorage.getItem('td_token') || sessionStorage.getItem('td_auth') === 'true';
     if (!isLoggedIn) return;
 
-    // Purana timer cancel karo aur naya timer shuru karo
     if (inactivityTimer) clearTimeout(inactivityTimer);
-    
     inactivityTimer = setTimeout(autoLogoutUser, TIMEOUT_MS);
 }
-
 // Jab timer expire ho jayega, tab yeh function chalega
 function autoLogoutUser() {
     // 1. Saare tokens aur login data delete kar do
