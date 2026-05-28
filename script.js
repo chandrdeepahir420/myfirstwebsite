@@ -1664,18 +1664,16 @@ async function unlockWithFaceID() {
 }
 
 // ⭐ APP START HOTE HI LOCK CHECK KAREIN ⭐
+// ⭐ APP START HOTE HI LOCK CHECK KAREIN ⭐
 window.addEventListener('DOMContentLoaded', () => {
     const isFaceIdEnabled = localStorage.getItem('td_faceid_enabled') === 'true';
     const lockScreen = document.getElementById('appLockScreen');
 
     if (isFaceIdEnabled && lockScreen) {
-        // 1. App ko turant Lock Screen se cover kar do
         lockScreen.style.display = 'flex';
-        
-        // 2. UI load hone ke theek aadhe second baad Face ID popup trigger kar do
+        // Aadhe second baad Face ID popup trigger karo
         setTimeout(unlockWithFaceID, 500); 
     } else if (lockScreen) {
-        // Agar Face ID setup nahi hai, toh Lock screen ko chupchaap hata do
         lockScreen.style.display = 'none';
     }
 });
