@@ -1636,13 +1636,22 @@ function skipSecuritySetup() {
 // ==========================================
 // ⭐ FACE ID UNLOCK ENGINE (App Khulte Waqt) ⭐
 // ==========================================
+// ==========================================
+// ⭐ SMART FACE ID UNLOCK ENGINE ⭐
+// ==========================================
 
 async function unlockWithFaceID() {
     try {
+        // 1. Check if helper function exists
+        if (typeof bufferDecode !== 'function') {
+            alert("🚨 Code Error: 'bufferDecode' function missing hai! Ise setupFaceID ke upar add karein.");
+            return;
+        }
+
         const publicKeyCredentialRequestOptions = {
-            challenge: bufferDecode("random-secure-challenge-string"), // Setup wala same challenge
+            challenge: bufferDecode("random-secure-challenge-string"), 
             rpId: window.location.hostname,
-            userVerification: "required", // Face ID ya PIN pass hona chahiye
+            userVerification: "required", 
             timeout: 60000
         };
 
@@ -1652,28 +1661,30 @@ async function unlockWithFaceID() {
 
         // Agar Face ID match ho gaya
         if (assertion) {
-            // Lock screen hata do aur app khol do
             document.getElementById('appLockScreen').style.display = 'none';
             if (navigator.vibrate) navigator.vibrate(50);
         }
     } catch (err) {
+        // ⭐ YEH ALERT ASLI GALTI BATAYEGA ⭐
+        alert("🚨 UNLOCK FAILED:\nName: " + err.name + "\nMessage: " + err.message);
         console.error("Face ID Unlock Error:", err);
-        // Agar Face ID cancel ho jaye ya fail ho, toh Lock Screen wahi rahegi
-        // User Lock Screen par bane "Unlock Now" button ko dabakar wapas try kar sakta hai
     }
 }
 
-// ⭐ APP START HOTE HI LOCK CHECK KAREIN ⭐
 // ⭐ APP START HOTE HI LOCK CHECK KAREIN ⭐
 window.addEventListener('DOMContentLoaded', () => {
     const isFaceIdEnabled = localStorage.getItem('td_faceid_enabled') === 'true';
     const lockScreen = document.getElementById('appLockScreen');
 
     if (isFaceIdEnabled && lockScreen) {
+        // App ko turant Lock Screen se cover kar do
         lockScreen.style.display = 'flex';
+        
         // Aadhe second baad Face ID popup trigger karo
         setTimeout(unlockWithFaceID, 500); 
-    } else if (lockScreen) {
-        lockScreen.style.display = 'none';
+    } else if (!isFaceIdEnabled) {
+        // Agar aapko yeh alert dikhe, matlab App memory bhool chuki hai
+        // console.log("Face ID is currently OFF in settings.");
+        if (lockScreen) lockScreen.style.display = 'none';
     }
 });
