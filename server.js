@@ -128,7 +128,6 @@ app.post('/api/vault/verify', (req, res) => {
     // Naya PIN save kar lo
     fs.writeFileSync(PIN_FILE_PATH, JSON.stringify({ pin: newPin }));
     res.json({ success: true, message: 'PIN updated successfully!' });
-});
 
 app.post('/verify-otp', async (req, res) => {
     try {
