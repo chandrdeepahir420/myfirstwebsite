@@ -1335,27 +1335,35 @@ function submitVaultPin() {
 
     const storedPin = localStorage.getItem('td_vault_pin');
 
+    // ⭐ THE BUG FIX: Modal close hone se pehle data safe kar lo
+    const targetFolderId = pendingVaultFolder.id;
+    const targetFolderName = pendingVaultFolder.name;
+
     if (!storedPin) {
         // Naya PIN save karo
         localStorage.setItem('td_vault_pin', enteredPin);
-        closeVaultModal();
-        alert("🔒 Vault PIN set successfully! Do not forget it.");
-        navigateTo(pendingVaultFolder.id, pendingVaultFolder.name); // Folder open karo
+        closeVaultModal(); // Ab yeh memory clear bhi kare toh koi problem nahi
+        
+        // Timeout lagaya taaki UI smooth rahe aur alert ke baad folder khul jaye
+        setTimeout(() => {
+            alert("🔒 Vault PIN set successfully! Do not forget it.");
+            navigateTo(targetFolderId, targetFolderName); 
+        }, 100);
+        
     } else {
         // Purana PIN Check karo
         if (enteredPin === storedPin) {
             closeVaultModal();
-            navigateTo(pendingVaultFolder.id, pendingVaultFolder.name); // Correct PIN, folder open
+            navigateTo(targetFolderId, targetFolderName); // Correct PIN, folder open
         } else {
             // Galat PIN
             showVaultError("Incorrect PIN! Try again.");
             inputs.forEach(input => input.value = ''); // Reset boxes
             inputs[0].focus();
-            if (navigator.vibrate) navigator.vibrate([50, 50, 50]); // Phone vibrate for error
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]); 
         }
     }
 }
-
 function showVaultError(msg) {
     const errEl = document.getElementById('vaultError');
     errEl.innerText = msg;
