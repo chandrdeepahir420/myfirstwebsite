@@ -54,7 +54,8 @@ const OTPSchema = new mongoose.Schema({ code: String, used: { type: Boolean, def
 const OTPModel = mongoose.model('OTP', OTPSchema);
 
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static('.'));
+
 // ==========================================
 // SECURITY MIDDLEWARE (JWT)
 // ==========================================

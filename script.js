@@ -1,5 +1,5 @@
 // ==========================================
-// 1. GLOBAL VARIABLES & THEME CONFIGh
+// 1. GLOBAL VARIABLES & THEME CONFIG
 // ==========================================
 let isDark = true;
 let currentFolderId = 'root';
