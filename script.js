@@ -1328,30 +1328,41 @@ function goBack() {
 // ==========================================
 // ⭐ SECURE VAULT ENGINE ⭐
 // ==========================================
+// ==========================================
+// ⭐ RENDER SERVER-BASED VAULT ENGINE ⭐
+// ==========================================
 let pendingVaultFolder = null;
+let isFirstTimeSetup = false;
 
-function openVaultLock(folderId, folderName) {
+// 1. Vault Open karne par Backend se check karo ki PIN set hai ya nahi
+async function openVaultLock(folderId, folderName) {
     pendingVaultFolder = { id: folderId, name: folderName };
-    const storedPin = localStorage.getItem('td_vault_pin');
-
     document.getElementById('vaultModalOverlay').style.display = 'flex';
+    document.getElementById('vaultError').style.display = 'none';
+    
     const title = document.getElementById('vaultModalTitle');
     const desc = document.getElementById('vaultModalDesc');
-    document.getElementById('vaultError').style.display = 'none';
+    const inputs = document.querySelectorAll('.vault-pin-box');
+    inputs.forEach(input => input.value = ''); // Clear boxes
 
-    // Purane likhe hue numbers clear karein
-    document.querySelectorAll('.vault-pin-box').forEach(input => input.value = '');
+    try {
+        const response = await fetch('/api/vault/status');
+        const data = await response.json();
 
-    if (!storedPin) {
-        title.innerText = "Setup Vault PIN";
-        desc.innerText = "Create a new 4-digit PIN to secure your files.";
-    } else {
-        title.innerText = "Secure Vault";
-        desc.innerText = "Enter your 4-digit PIN to unlock this folder.";
+        isFirstTimeSetup = !data.isPinSet;
+
+        if (isFirstTimeSetup) {
+            title.innerText = "Setup Vault PIN";
+            desc.innerText = "Create a new 4-digit PIN for your Vault.";
+        } else {
+            title.innerText = "Secure Vault";
+            desc.innerText = "Enter your 4-digit PIN to unlock.";
+        }
+        
+        setTimeout(() => inputs[0].focus(), 100);
+    } catch (err) {
+        showVaultError("Server error. Please try again.");
     }
-
-    // Modal khulte hi pehle box par cursor aa jaye
-    setTimeout(() => document.querySelectorAll('.vault-pin-box')[0].focus(), 100);
 }
 
 function closeVaultModal() {
@@ -1359,7 +1370,15 @@ function closeVaultModal() {
     pendingVaultFolder = null;
 }
 
-function submitVaultPin() {
+function showVaultError(msg) {
+    const errEl = document.getElementById('vaultError');
+    errEl.innerText = msg;
+    errEl.style.display = 'block';
+    if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+}
+
+// 2. PIN Submit karo (Create ya Verify dono yahi se hoga)
+async function submitVaultPin() {
     const inputs = document.querySelectorAll('.vault-pin-box');
     let enteredPin = '';
     inputs.forEach(input => enteredPin += input.value);
@@ -1369,41 +1388,104 @@ function submitVaultPin() {
         return;
     }
 
-    const storedPin = localStorage.getItem('td_vault_pin');
-
-    // ⭐ THE BUG FIX: Modal close hone se pehle data safe kar lo
     const targetFolderId = pendingVaultFolder.id;
     const targetFolderName = pendingVaultFolder.name;
 
-    if (!storedPin) {
-        // Naya PIN save karo
-        localStorage.setItem('td_vault_pin', enteredPin);
-        closeVaultModal(); // Ab yeh memory clear bhi kare toh koi problem nahi
+    try {
+        const response = await fetch('/api/vault/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: enteredPin })
+        });
         
-        // Timeout lagaya taaki UI smooth rahe aur alert ke baad folder khul jaye
-        setTimeout(() => {
-            alert("🔒 Vault PIN set successfully! Do not forget it.");
-            navigateTo(targetFolderId, targetFolderName); 
-        }, 100);
-        
-    } else {
-        // Purana PIN Check karo
-        if (enteredPin === storedPin) {
+        const data = await response.json();
+
+        if (data.success) {
             closeVaultModal();
-            navigateTo(targetFolderId, targetFolderName); // Correct PIN, folder open
+            if (isFirstTimeSetup) alert("🔒 Vault PIN created securely on server!");
+            navigateTo(targetFolderId, targetFolderName); 
         } else {
-            // Galat PIN
-            showVaultError("Incorrect PIN! Try again.");
-            inputs.forEach(input => input.value = ''); // Reset boxes
+            showVaultError(data.message);
+            inputs.forEach(input => input.value = '');
             inputs[0].focus();
-            if (navigator.vibrate) navigator.vibrate([50, 50, 50]); 
         }
+    } catch (err) {
+        showVaultError("Failed to connect to server.");
     }
 }
-function showVaultError(msg) {
-    const errEl = document.getElementById('vaultError');
-    errEl.innerText = msg;
-    errEl.style.display = 'block';
+
+// ⌨️ Auto-Move Cursor for PIN Boxes
+document.querySelectorAll('.vault-pin-box').forEach((input, index, inputs) => {
+    input.addEventListener('input', (e) => {
+        if (e.target.value && index < inputs.length - 1) inputs[index + 1].focus();
+        if (e.target.value && index === inputs.length - 1) setTimeout(submitVaultPin, 100);
+    });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && index > 0) inputs[index - 1].focus();
+        if (e.key === 'Enter') submitVaultPin();
+    });
+});
+
+
+// ==========================================
+// ⭐ SETTINGS: CHANGE PIN ENGINE ⭐
+// ==========================================
+async function openChangePinModal() {
+    // Pehle check karo server par PIN bana bhi hai ya nahi
+    try {
+        const response = await fetch('/api/vault/status');
+        const data = await response.json();
+        
+        if (!data.isPinSet) {
+            alert("You haven't set a Vault PIN yet. Open your Vault folder first to create one.");
+            return;
+        }
+
+        document.getElementById('changePinModal').style.display = 'flex';
+        document.getElementById('oldPinInput').value = '';
+        document.getElementById('newPinInput').value = '';
+        document.getElementById('changePinError').style.display = 'none';
+    } catch (err) {
+        alert("Server error.");
+    }
+}
+
+function closeChangePinModal() {
+    document.getElementById('changePinModal').style.display = 'none';
+}
+
+async function saveNewPinBackend() {
+    const oldPin = document.getElementById('oldPinInput').value;
+    const newPin = document.getElementById('newPinInput').value;
+    const errorEl = document.getElementById('changePinError');
+
+    if (oldPin.length < 4 || newPin.length < 4) {
+        errorEl.innerText = "Please enter complete 4-digit PINs.";
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/vault/change', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldPin, newPin })
+        });
+        
+        const data = await response.json();
+
+        if (data.success) {
+            closeChangePinModal();
+            setTimeout(() => alert("✅ Vault PIN updated securely on server!"), 200);
+        } else {
+            errorEl.innerText = data.message;
+            errorEl.style.display = 'block';
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+        }
+    } catch (err) {
+        errorEl.innerText = "Failed to connect to server.";
+        errorEl.style.display = 'block';
+    }
 }
 
 // ⌨️ Auto-Move Cursor for PIN Boxes (Like OTP)
