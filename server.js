@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-teledrive-key-2026';
@@ -82,6 +83,57 @@ app.post('/request-otp', async (req, res) => {
         await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { chat_id: process.env.TELEGRAM_CHAT_ID, text: `🔐 OTP: *${code}*`, parse_mode: 'Markdown' });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
+});
+const fs = require('fs');
+const path = require('path');
+
+// PIN ko server par ek chhote file mein save karenge
+const PIN_FILE_PATH = path.join(__dirname, 'vault_pin.json');
+
+function getStoredPin() {
+    if (fs.existsSync(PIN_FILE_PATH)) {
+        const data = JSON.parse(fs.readFileSync(PIN_FILE_PATH));
+        return data.pin;
+    }
+    return null;
+}
+
+// API 1: Check if PIN exists
+app.get('/api/vault/status', (req, res) => {
+    const pin = getStoredPin();
+    res.json({ isPinSet: !!pin });
+});
+
+// API 2: Verify or Set New PIN
+app.post('/api/vault/verify', (req, res) => {
+    const { pin } = req.body;
+    const storedPin = getStoredPin();
+
+    if (!storedPin) {
+        // Agar pehli baar hai, toh PIN save kar lo
+        fs.writeFileSync(PIN_FILE_PATH, JSON.stringify({ pin: pin }));
+        return res.json({ success: true, message: 'New PIN created successfully!' });
+    }
+
+    if (pin === storedPin) {
+        return res.json({ success: true, message: 'Unlocked!' });
+    } else {
+        return res.json({ success: false, message: 'Incorrect PIN!' });
+    }
+});
+
+// API 3: Change PIN (Settings se)
+app.post('/api/vault/change', (req, res) => {
+    const { oldPin, newPin } = req.body;
+    const storedPin = getStoredPin();
+
+    if (oldPin !== storedPin) {
+        return res.json({ success: false, message: 'Current PIN is incorrect!' });
+    }
+
+    // Naya PIN save kar lo
+    fs.writeFileSync(PIN_FILE_PATH, JSON.stringify({ pin: newPin }));
+    res.json({ success: true, message: 'PIN updated successfully!' });
 });
 
 app.post('/verify-otp', async (req, res) => {
