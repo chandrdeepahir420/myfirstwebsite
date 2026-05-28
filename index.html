@@ -115,6 +115,9 @@
       <a class="nav-item text-red-400" id="navTrash" onclick="switchView('trash')"><i class="fa-solid fa-trash-can"></i> Trash Bin</a>
       <a class="nav-item" id="navSettings" onclick="switchView('settings')"><i class="fa-solid fa-gear"></i> Settings</a>
     </nav>
+    <button class="btn-primary" onclick="document.getElementById('securitySetupModal').style.display='flex'" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 15px; background: var(--surface2); color: var(--text);">
+    <i class="fa-solid fa-face-viewfinder"></i> Turn On Face ID
+</button>
     <div class="sidebar-bottom"><button class="theme-toggle-btn" onclick="toggleTheme()"><span id="themeIconSidebar">🌙</span> Mode</button><button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button></div>
   </aside>
 
