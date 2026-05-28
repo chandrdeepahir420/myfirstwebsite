@@ -1105,59 +1105,77 @@ async function bulkDownload() {
 
     // UI Feedback
     const countTextElement = document.getElementById('selectedCount');
-    const originalText = countTextElement.innerText;
-    countTextElement.innerText = "Downloading Files...";
+    const originalText = countTextElement ? countTextElement.innerText : "";
+    if (countTextElement) countTextElement.innerText = "Preparing Files...";
 
     try {
         const token = localStorage.getItem('td_token');
-        const blobData = []; 
+        const filesArray = []; // Share API ke liye
+        const blobFallbackData = []; // PC fallback (Aapke purane logic) ke liye
 
         // 1. Saari files ko background mein fetch karein
         for (let id of selectedIds) {
             const fileMeta = allFiles.find(f => f._id === id);
             if (!fileMeta) continue;
 
+            // ⭐ PRESERVED: Aapka purana Token URL logic
             const dlUrl = token ? `/download/${id}?token=${token}` : `/download/${id}`;
             const response = await fetch(dlUrl);
             if (!response.ok) continue;
 
             const blob = await response.blob();
-            blobData.push({ blob, name: fileMeta.name });
+            
+            // Share sheet ke liye Blob ko 'File' object mein badalna zaroori hai
+            const file = new File([blob], fileMeta.name, { type: blob.type || 'application/octet-stream' });
+            
+            filesArray.push(file);
+            blobFallbackData.push({ blob, name: fileMeta.name });
         }
 
-        // 2. ⭐ DELAYED DOWNLOAD LOOP (No Share API) ⭐
-        // Har file ke beech mein 1.5 seconds (1500ms) ka gap
-        for (let i = 0; i < blobData.length; i++) {
-            setTimeout(() => {
-                const item = blobData[i];
-                const url = window.URL.createObjectURL(item.blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = item.name;
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                
-                a.click(); // File save trigger hogi
-                
-                // Memory cleanup thodi der baad
+        // 2. ⭐ SMART CHECK: Kya mobile browser single share sheet support karta hai?
+        if (navigator.canShare && navigator.canShare({ files: filesArray })) {
+            
+            // Mobile (Google Photos Style): Ek single share sheet popup khulega
+            await navigator.share({
+                files: filesArray,
+                title: 'TeleDrive Files'
+            });
+
+        } else {
+            
+            // 3. ⭐ LAPTOP/PC FALLBACK (Aapka purana 1.5s delay loop)
+            for (let i = 0; i < blobFallbackData.length; i++) {
                 setTimeout(() => {
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                }, 1000);
-                
-            }, i * 1500); // 0s, 1.5s, 3s...
+                    const item = blobFallbackData[i];
+                    const url = window.URL.createObjectURL(item.blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = item.name;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    
+                    a.click(); // File save trigger hogi
+                    
+                    // Memory cleanup thodi der baad
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    }, 1000);
+                    
+                }, i * 1500); // 0s, 1.5s, 3s...
+            }
         }
 
     } catch (error) {
         console.error("Bulk Download Error:", error);
         alert("Something went wrong while downloading files.");
+    } finally {
+        // ⭐ FINALLY BLOCK: Process chahe fail ho ya pass, UI reset zaroor hoga
+        if (countTextElement) countTextElement.innerText = originalText;
+        if (typeof clearSelection === 'function') clearSelection();
     }
-
-    // Process khatam hone ke baad reset karein
-    countTextElement.innerText = originalText;
-    clearSelection();
-}// ==========================================
+}}// ==========================================
 // ⭐ CUSTOM CREATE FOLDER LOGIC ⭐
 // ==========================================
 // ==========================================
