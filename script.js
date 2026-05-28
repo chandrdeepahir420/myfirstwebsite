@@ -1438,3 +1438,37 @@ document.addEventListener('touchend', (e) => {
         if (navigator.vibrate) navigator.vibrate(30);
     }
 }, { passive: false });
+// ==========================================
+// ⭐ FIRST TIME SECURITY SETUP ENGINE ⭐
+// ==========================================
+
+function checkAndPromptSecurity() {
+    // Sirf mobile par prompt dikhana hai
+    if (!isMobileApp()) return; 
+    
+    const isFaceIdEnabled = localStorage.getItem('td_faceid_enabled') === 'true';
+    const isPrompted = localStorage.getItem('td_security_prompted') === 'true';
+    
+    // Agar user ne ab tak Face ID setup nahi kiya hai aur 'Skip' bhi nahi kiya hai
+    if (!isFaceIdEnabled && !isPrompted) {
+        // Thoda delay dete hain taaki background files load ho jayein
+        setTimeout(() => {
+            document.getElementById('securitySetupModal').style.display = 'flex';
+        }, 1000);
+    }
+}
+
+async function startSecuritySetup() {
+    document.getElementById('securitySetupModal').style.display = 'none';
+    // Yaad rakho ki humne user se pooch liya hai, taaki baar baar pareshan na karein
+    localStorage.setItem('td_security_prompted', 'true'); 
+    
+    // Aapka purana Face ID setup function call hoga
+    await setupFaceID(); 
+}
+
+function skipSecuritySetup() {
+    document.getElementById('securitySetupModal').style.display = 'none';
+    // User ne skip kiya hai, aage se mat poochhna
+    localStorage.setItem('td_security_prompted', 'true'); 
+}
