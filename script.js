@@ -1467,14 +1467,30 @@ function checkAndPromptSecurity() {
 }
 
 async function startSecuritySetup() {
-    document.getElementById('securitySetupModal').style.display = 'none';
-    // Yaad rakho ki humne user se pooch liya hai, taaki baar baar pareshan na karein
-    localStorage.setItem('td_security_prompted', 'true'); 
-    
-    // Aapka purana Face ID setup function call hoga
-    await setupFaceID(); 
-}
+    // Check karein ki HTTP hai ya HTTPS
+    if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        alert("🔒 Security Error:\nFace ID & Biometrics only work on secure HTTPS connections. Please host your app online to test this feature.");
+        
+        // Modal ko close kar do aur 'prompted' set kar do taaki HTTP par baar baar na pooche
+        document.getElementById('securitySetupModal').style.display = 'none';
+        localStorage.setItem('td_security_prompted', 'true'); 
+        return; // Yahin se wapas mud jao, aage ka code mat chalao
+    }
 
+    try {
+        // Agar connection safe hai, toh Setup chalao
+        await setupFaceID(); 
+        
+        // Setup successful hone par hi modal band karo
+        document.getElementById('securitySetupModal').style.display = 'none';
+        localStorage.setItem('td_security_prompted', 'true'); 
+
+    } catch (error) {
+        console.error(error);
+        alert("Face ID setup failed. Please try again.");
+        // Agar fail ho gaya, toh modal ko band mat karo, taaki user wapas try kar sake
+    }
+}
 function skipSecuritySetup() {
     document.getElementById('securitySetupModal').style.display = 'none';
     // User ne skip kiya hai, aage se mat poochhna
