@@ -1392,3 +1392,21 @@ document.querySelectorAll('.vault-pin-box').forEach((input, index, inputs) => {
         if (e.key === 'Enter') submitVaultPin();
     });
 });
+// ==========================================
+// ⭐ MOBILE FAST-TAP BUTTON FIX ⭐
+// ==========================================
+document.addEventListener('touchend', (e) => {
+    // Check karein ki kya user ne Action Bar ke kisi button par tap kiya hai?
+    const actionBtn = e.target.closest('.ab-btn');
+    
+    if (actionBtn) {
+        // Mobile browser ki default aadat (Ghost-click/Hover delay) ko roko
+        e.preventDefault(); 
+        
+        // Button ka asli click function turant (0 delay) trigger kar do
+        actionBtn.click();
+        
+        // Premium feel ke liye haptic feedback (vibration)
+        if (navigator.vibrate) navigator.vibrate(30);
+    }
+}, { passive: false });
