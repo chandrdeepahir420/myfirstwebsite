@@ -84,8 +84,6 @@ app.post('/request-otp', async (req, res) => {
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
-const fs = require('fs');
-const path = require('path');
 
 // PIN ko server par ek chhote file mein save karenge
 const PIN_FILE_PATH = path.join(__dirname, 'vault_pin.json');
