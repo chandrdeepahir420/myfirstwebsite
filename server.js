@@ -97,38 +97,34 @@ function getStoredPin() {
 }
 
 // API 1: Check if PIN exists
+// ==========================================
+// ⭐ RENDER ENVIRONMENT VARIABLE VAULT ⭐
+// ==========================================
+
+// API 1: Check if PIN exists (Hamesha true rahega kyunki Render mein set hai)
 app.get('/api/vault/status', (req, res) => {
-    const pin = getStoredPin();
-    res.json({ isPinSet: !!pin });
+    res.json({ isPinSet: true });
 });
 
-// API 2: Verify or Set New PIN
+// API 2: Verify PIN
 app.post('/api/vault/verify', (req, res) => {
     const { pin } = req.body;
-    const storedPin = getStoredPin();
+    
+    // Render dashboard se seedha PIN read karega
+    const masterPin = process.env.VAULT_PIN; 
 
-    if (!storedPin) {
-        // Agar pehli baar hai, toh PIN save kar lo
-        fs.writeFileSync(PIN_FILE_PATH, JSON.stringify({ pin: pin }));
-        return res.json({ success: true, message: 'New PIN created successfully!' });
+    if (!masterPin) {
+        return res.json({ success: false, message: 'Server error: VAULT_PIN is missing in Render Environment Variables!' });
     }
 
-    if (pin === storedPin) {
+    if (pin === masterPin) {
         return res.json({ success: true, message: 'Unlocked!' });
     } else {
         return res.json({ success: false, message: 'Incorrect PIN!' });
     }
 });
 
-// API 3: Change PIN (Settings se)
-app.post('/api/vault/change', (req, res) => {
-    const { oldPin, newPin } = req.body;
-    const storedPin = getStoredPin();
-
-    if (oldPin !== storedPin) {
-        return res.json({ success: false, message: 'Current PIN is incorrect!' });
-    }
-
+// (Aap change PIN wali API (/api/vault/change) delete kar sakte hain kyunki ab hum PIN Render se control kar rahe hain)
     // Naya PIN save kar lo
     fs.writeFileSync(PIN_FILE_PATH, JSON.stringify({ pin: newPin }));
     res.json({ success: true, message: 'PIN updated successfully!' });
