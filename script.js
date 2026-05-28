@@ -1450,35 +1450,88 @@ document.addEventListener('touchend', (e) => {
 // ⭐ FIRST TIME SECURITY SETUP ENGINE ⭐
 // ==========================================
 
+// ==========================================
+// ⭐ NATIVE FACE ID / TOUCH ID ENGINE ⭐
+// ==========================================
+
+// Helper function (Yeh miss nahi hona chahiye!)
+function bufferDecode(value) {
+    return Uint8Array.from(value, c => c.charCodeAt(0));
+}
+
+async function setupFaceID() {
+    if (!window.PublicKeyCredential) {
+        throw new Error("Your browser/device does not support Face ID / Biometrics.");
+    }
+
+    // Yeh code iPhone ko bolta hai ki is app ke liye ek Face ID passkey create kare
+    const publicKeyCredentialCreationOptions = {
+        challenge: bufferDecode("random-secure-challenge-string"),
+        rp: { name: "TeleDrive Web App", id: window.location.hostname },
+        user: {
+            id: bufferDecode("user-id-12345"),
+            name: "teledrive_user",
+            displayName: "TeleDrive Admin"
+        },
+        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+        authenticatorSelection: {
+            authenticatorAttachment: "platform", 
+            userVerification: "required" 
+        },
+        timeout: 60000,
+        attestation: "none"
+    };
+
+    const credential = await navigator.credentials.create({
+        publicKey: publicKeyCredentialCreationOptions
+    });
+
+    if (credential) {
+        localStorage.setItem('td_faceid_enabled', 'true');
+        localStorage.setItem('td_credential_id', credential.rawId);
+        alert("✅ Face ID setup successful! App is now secured.");
+    }
+}
+
+
+// ==========================================
+// ⭐ FIRST TIME SECURITY SETUP ENGINE ⭐
+// ==========================================
+
 function checkAndPromptSecurity() {
-    // Sirf mobile par prompt dikhana hai
     if (!isMobileApp()) return; 
     
     const isFaceIdEnabled = localStorage.getItem('td_faceid_enabled') === 'true';
     const isPrompted = localStorage.getItem('td_security_prompted') === 'true';
     
-    // Agar user ne ab tak Face ID setup nahi kiya hai aur 'Skip' bhi nahi kiya hai
     if (!isFaceIdEnabled && !isPrompted) {
-        // Thoda delay dete hain taaki background files load ho jayein
         setTimeout(() => {
-            document.getElementById('securitySetupModal').style.display = 'flex';
+            const modal = document.getElementById('securitySetupModal');
+            if(modal) modal.style.display = 'flex';
         }, 1000);
     }
 }
 
 async function startSecuritySetup() {
-    // Check karein ki HTTP hai ya HTTPS
-    if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        alert("🔒 Security Error:\nFace ID & Biometrics only work on secure HTTPS connections. Please host your app online to test this feature.");
-        
-        // Modal ko close kar do aur 'prompted' set kar do taaki HTTP par baar baar na pooche
+    // 1. IP Address aur HTTP ki strict checking
+    const host = window.location.hostname;
+    const isIP = /^[0-9.]+$/.test(host); // Check if host is an IP address
+    
+    if (window.location.protocol === 'http:' && host !== 'localhost' && host !== '127.0.0.1') {
+        alert("🔒 Security Error:\nFace ID only works on secure HTTPS connections. Please host your app online.");
         document.getElementById('securitySetupModal').style.display = 'none';
         localStorage.setItem('td_security_prompted', 'true'); 
-        return; // Yahin se wapas mud jao, aage ka code mat chalao
+        return;
+    }
+
+    if (isIP && host !== '127.0.0.1') {
+        alert("🔒 Security Error:\nFace ID CANNOT run on a network IP Address (like 192.168.x.x) even if it is HTTPS. You must test this on localhost or a real Domain Name (like Vercel/Render).");
+        document.getElementById('securitySetupModal').style.display = 'none';
+        localStorage.setItem('td_security_prompted', 'true');
+        return;
     }
 
     try {
-        // Agar connection safe hai, toh Setup chalao
         await setupFaceID(); 
         
         // Setup successful hone par hi modal band karo
@@ -1486,13 +1539,15 @@ async function startSecuritySetup() {
         localStorage.setItem('td_security_prompted', 'true'); 
 
     } catch (error) {
+        // ⭐ THE DIAGNOSTIC ALERT ⭐
+        // Ab agar fail hoga toh yeh bata dega kyu fail hua
         console.error(error);
-        alert("Face ID setup failed. Please try again.");
-        // Agar fail ho gaya, toh modal ko band mat karo, taaki user wapas try kar sake
+        alert("🚨 EXACT ERROR: " + (error.name || "Error") + "\n" + (error.message || error));
     }
 }
+
 function skipSecuritySetup() {
-    document.getElementById('securitySetupModal').style.display = 'none';
-    // User ne skip kiya hai, aage se mat poochhna
+    const modal = document.getElementById('securitySetupModal');
+    if(modal) modal.style.display = 'none';
     localStorage.setItem('td_security_prompted', 'true'); 
 }
