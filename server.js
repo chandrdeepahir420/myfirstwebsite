@@ -126,9 +126,6 @@ app.post('/api/vault/verify', (req, res) => {
 
 // (Aap change PIN wali API (/api/vault/change) delete kar sakte hain kyunki ab hum PIN Render se control kar rahe hain)
     // Naya PIN save kar lo
-    fs.writeFileSync(PIN_FILE_PATH, JSON.stringify({ pin: newPin }));
-    res.json({ success: true, message: 'PIN updated successfully!' });
-
 app.post('/verify-otp', async (req, res) => {
     try {
         const otp = await OTPModel.findOne({ code: req.body.code, used: false });
