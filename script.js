@@ -625,9 +625,20 @@ function renderItems(folders, files, isTrash) {
             
         d.querySelector('.select-check').addEventListener('click', (e) => { e.stopPropagation(); toggleSelect(f._id, d); });
         d.addEventListener('click', (e) => { 
-            if (e.target.closest('.three-dot-btn')) return; 
-            if (selectedIds.size > 0) { toggleSelect(f._id, d); } else if (!isTrash) { navigateTo(f._id, f.name); }
-        });
+    if (e.target.closest('.three-dot-btn')) return; 
+    if (selectedIds.size > 0) { 
+        toggleSelect(f._id, d); 
+    } else if (!isTrash) { 
+        // ⭐ THE VAULT CHECK ⭐
+        // Agar folder ka naam "Vault" ya "Secure Vault" hai, toh direct open mat karo, Lock lagao!
+        const folderNameLower = f.name.toLowerCase();
+        if (folderNameLower === 'vault' || folderNameLower === 'secure vault') {
+            openVaultLock(f._id, f.name);
+        } else {
+            navigateTo(f._id, f.name); 
+        }
+    }
+});
         d.addEventListener('contextmenu', e => { e.preventDefault(); openMenu(e, f._id, 'folder'); });
         listEl.appendChild(d);
     });
@@ -1278,3 +1289,98 @@ function goBack() {
         navigateTo(parentFolder.id, parentFolder.name);
     }
 }
+// ==========================================
+// ⭐ SECURE VAULT ENGINE ⭐
+// ==========================================
+let pendingVaultFolder = null;
+
+function openVaultLock(folderId, folderName) {
+    pendingVaultFolder = { id: folderId, name: folderName };
+    const storedPin = localStorage.getItem('td_vault_pin');
+
+    document.getElementById('vaultModalOverlay').style.display = 'flex';
+    const title = document.getElementById('vaultModalTitle');
+    const desc = document.getElementById('vaultModalDesc');
+    document.getElementById('vaultError').style.display = 'none';
+
+    // Purane likhe hue numbers clear karein
+    document.querySelectorAll('.vault-pin-box').forEach(input => input.value = '');
+
+    if (!storedPin) {
+        title.innerText = "Setup Vault PIN";
+        desc.innerText = "Create a new 4-digit PIN to secure your files.";
+    } else {
+        title.innerText = "Secure Vault";
+        desc.innerText = "Enter your 4-digit PIN to unlock this folder.";
+    }
+
+    // Modal khulte hi pehle box par cursor aa jaye
+    setTimeout(() => document.querySelectorAll('.vault-pin-box')[0].focus(), 100);
+}
+
+function closeVaultModal() {
+    document.getElementById('vaultModalOverlay').style.display = 'none';
+    pendingVaultFolder = null;
+}
+
+function submitVaultPin() {
+    const inputs = document.querySelectorAll('.vault-pin-box');
+    let enteredPin = '';
+    inputs.forEach(input => enteredPin += input.value);
+
+    if (enteredPin.length < 4) {
+        showVaultError("Please enter all 4 digits.");
+        return;
+    }
+
+    const storedPin = localStorage.getItem('td_vault_pin');
+
+    if (!storedPin) {
+        // Naya PIN save karo
+        localStorage.setItem('td_vault_pin', enteredPin);
+        closeVaultModal();
+        alert("🔒 Vault PIN set successfully! Do not forget it.");
+        navigateTo(pendingVaultFolder.id, pendingVaultFolder.name); // Folder open karo
+    } else {
+        // Purana PIN Check karo
+        if (enteredPin === storedPin) {
+            closeVaultModal();
+            navigateTo(pendingVaultFolder.id, pendingVaultFolder.name); // Correct PIN, folder open
+        } else {
+            // Galat PIN
+            showVaultError("Incorrect PIN! Try again.");
+            inputs.forEach(input => input.value = ''); // Reset boxes
+            inputs[0].focus();
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]); // Phone vibrate for error
+        }
+    }
+}
+
+function showVaultError(msg) {
+    const errEl = document.getElementById('vaultError');
+    errEl.innerText = msg;
+    errEl.style.display = 'block';
+}
+
+// ⌨️ Auto-Move Cursor for PIN Boxes (Like OTP)
+document.querySelectorAll('.vault-pin-box').forEach((input, index, inputs) => {
+    input.addEventListener('input', (e) => {
+        // Agar number type kiya, toh aagle box par jao
+        if (e.target.value && index < inputs.length - 1) {
+            inputs[index + 1].focus();
+        }
+        // Agar aakhiri box type ho gaya, toh apne aap submit kar do!
+        if (e.target.value && index === inputs.length - 1) {
+            setTimeout(submitVaultPin, 100);
+        }
+    });
+    
+    input.addEventListener('keydown', (e) => {
+        // Agar Backspace dabaya aur box khali hai, toh pichle box par jao
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+            inputs[index - 1].focus();
+        }
+        // Agar Enter dabaya toh submit karo
+        if (e.key === 'Enter') submitVaultPin();
+    });
+});
