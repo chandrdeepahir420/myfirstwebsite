@@ -485,8 +485,15 @@ async function verifyOTP() {
 function logout() { localStorage.removeItem('td_token'); sessionStorage.removeItem('td_auth'); window.location.reload(); }
 function hideLoader() { document.getElementById('loadingScreen').style.display='none'; }
 function showLogin() { document.getElementById('loginScreen').style.display='flex'; document.getElementById('driveContent').style.display='none'; }
-function showDrive() { hideLoader(); document.getElementById('loginScreen').style.display='none'; document.getElementById('driveContent').style.display='flex'; switchView('drive'); }
-
+function showDrive() { 
+    hideLoader(); 
+    document.getElementById('loginScreen').style.display = 'none'; 
+    document.getElementById('driveContent').style.display = 'flex'; 
+    switchView('drive'); 
+    
+    // ⭐ NAYA UPDATE: OTP login ke baad Security Setup Popup trigger karne ke liye
+    checkAndPromptSecurity(); 
+}
 function switchView(view) {
     currentView = view; 
     clearSelection();
