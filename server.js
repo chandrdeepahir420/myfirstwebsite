@@ -322,5 +322,13 @@ setInterval(async () => {
         await FolderModel.deleteMany({ isTrashed: true, trashedAt: { $lt: thirtyDaysAgo } });
     } catch(err) {}
 }, 12 * 60 * 60 * 1000);
+app.get('/script.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(__dirname, 'script.js'));
+});
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server on port ${PORT}`));
