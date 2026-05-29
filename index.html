@@ -12,7 +12,15 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="dark">
-
+<div id="appLockScreen" style="position: fixed; inset: 0; background: var(--bg); z-index: 99999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+    <i class="fa-solid fa-lock" style="font-size: 4.5rem; color: var(--accent); margin-bottom: 20px;"></i>
+    <h2 style="color: var(--text); margin-bottom: 10px; font-family: 'Syne', sans-serif;">App Locked</h2>
+    <p style="color: var(--text-muted); margin-bottom: 30px;">Use Face ID or PIN to unlock TeleDrive</p>
+    
+    <button class="btn-primary" onclick="unlockWithFaceID()" style="font-size: 1.1rem; padding: 12px 24px; border-radius: 50px; display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-face-viewfinder"></i> Unlock Now
+    </button>
+</div>
 <div id="loadingScreen" class="loading-screen"><div class="loader-ring"></div></div>
 
 <div id="loginScreen" class="login-screen" style="display:none">
