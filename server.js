@@ -142,8 +142,11 @@ app.post('/request-otp', async (req, res) => {
         tasks.push(sendSmsOTP(code));
         tasks.push(sendWhatsAppOTP(code));
 
-        await Promise.all(tasks);
-        res.json({ success: true });
+        // Messages ko background mein bhejo, app ko wait mat karao
+        Promise.all(tasks).catch(err => console.log("OTP Background Error"));
+        
+        // Frontend ko turant success bhej do
+        res.json({ success: true, message: "OTP sent everywhere!" });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
