@@ -105,7 +105,7 @@ app.post('/request-otp', async (req, res) => {
                 subject: "TeleDrive Login OTP",
                 html: `<h3>TeleDrive Security</h3><p>Your login OTP is:</p><h1 style="color: #34c759; letter-spacing: 5px;">${code}</h1>`
             };
-            transporter.sendMail(mailOptions).catch(e => console.log('Email Error'));
+            transporter.sendMail(mailOptions).catch(e => console.log('🚨 EMAIL ERROR DETAILS:', e.message));
         }
 
         // Frontend ko turant aage badhao (App nahi atkegi)
