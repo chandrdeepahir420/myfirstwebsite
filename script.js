@@ -1694,42 +1694,42 @@ window.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // 📸 GOOGLE PHOTOS VIEW ENGINE
 // ==========================================
+// ==========================================
+// 📸 GOOGLE PHOTOS VIEW ENGINE (20 Photos Load)
+// ==========================================
 async function loadPhotosView() {
     const listEl = document.getElementById('fileList');
     const emptyEl = document.getElementById('emptyState');
     
-    // Pagination aur Scroll loading band karo
-    currentPage = 1; hasMore = false; 
-    
-    // Grid Setup
-    isGridView = true; // Hamesha Grid mein dikhega
+    hasMore = true; 
+    allFiles = []; 
+    foldersData = [];
+
+    isGridView = true; 
     listEl.className = 'file-grid';
-    listEl.innerHTML = `
-        <div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: var(--accent);">
-            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; margin-bottom: 15px;"></i>
-        </div>`;
+    listEl.innerHTML = `<div style="width: 100%; text-align: center; padding: 50px;"><i class="fa-solid fa-circle-notch fa-spin text-3xl"></i></div>`;
 
     try {
-        const headers = getHeaders();
-        // Naye API endpoint se sirf photos mangwao
-        const res = await fetch('/api/photos', { headers, cache: 'no-store' });
+        // 👈 Limit aur url check dono ko 20 par set kiya
+        const res = await fetch('/api/photos?skip=0&limit=20', { headers: getHeaders(), cache: 'no-store' });
         const photosData = await res.json();
         
-        allFiles = photosData; // Global data update
-        foldersData = []; // Photos view mein koi folder nahi hoga
+        allFiles = photosData; 
 
-        // Agar ek bhi photo nahi hai
         if (!photosData || photosData.length === 0) {
             listEl.innerHTML = '';
             if (emptyEl) {
                 emptyEl.style.display = 'flex';
                 document.getElementById('emptyIcon').className = 'fa-solid fa-images text-5xl text-blue-400';
-                document.getElementById('emptyTitle').innerText = 'No Photos Backed Up';
+                document.getElementById('emptyTitle').innerText = 'No Photos';
             }
+            hasMore = false;
             return;
         }
 
-        // Render using existing engine (folders = [], files = photosData)
+        // 👈 Agar 20 se kam aayi
+        if (photosData.length < 20) hasMore = false;
+
         renderItems([], photosData, false);
 
     } catch (e) {
