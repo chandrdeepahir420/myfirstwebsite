@@ -6,7 +6,15 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-
+// ⭐ Naya Email Setup ⭐
+const nodemailer = require('nodemailer');
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.GMAIL_EMAIL,
+        pass: process.env.GMAIL_APP_PASSWORD
+    }
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -74,17 +82,38 @@ const checkAuth = (req, res, next) => {
 // ==========================================
 // AUTH & SETTINGS ROUTES
 // ==========================================
+// ==========================================
+// AUTH & SETTINGS ROUTES
+// ==========================================
 app.post('/request-otp', async (req, res) => {
-    try {
-        const admin = await getAdmin();
-        if (req.body.username !== admin.username || req.body.password !== admin.password) return res.status(401).json({ success: false });
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        await OTPModel.deleteMany({}); await OTPModel.create({ code });
-        await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { chat_id: process.env.TELEGRAM_CHAT_ID, text: `🔐 OTP: *${code}*`, parse_mode: 'Markdown' });
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
+    try {
+        const admin = await getAdmin();
+        if (req.body.username !== admin.username || req.body.password !== admin.password) return res.status(401).json({ success: false });
+        
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        await OTPModel.deleteMany({}); 
+        await OTPModel.create({ code });
 
+        // 1. Telegram par bhejo (Background mein)
+        axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { chat_id: process.env.TELEGRAM_CHAT_ID, text: `🔐 OTP: *${code}*`, parse_mode: 'Markdown' }).catch(e => console.log('TG Error'));
+
+        // 2. Email par bhejo (Background mein)
+        if (process.env.GMAIL_EMAIL) {
+            const mailOptions = {
+                from: `"TeleDrive Security" <${process.env.GMAIL_EMAIL}>`,
+                to: process.env.GMAIL_EMAIL, // Aapke hi email par aayega
+                subject: "TeleDrive Login OTP",
+                html: `<h3>TeleDrive Security</h3><p>Your login OTP is:</p><h1 style="color: #34c759; letter-spacing: 5px;">${code}</h1>`
+            };
+            transporter.sendMail(mailOptions).catch(e => console.log('Email Error'));
+        }
+
+        // Frontend ko turant aage badhao (App nahi atkegi)
+        res.json({ success: true, message: "OTP Sent!" });
+    } catch (e) { 
+        res.status(500).json({ success: false }); 
+    }
+});
 // PIN ko server par ek chhote file mein save karenge
 const PIN_FILE_PATH = path.join(__dirname, 'vault_pin.json');
 
