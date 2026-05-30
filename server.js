@@ -10,18 +10,20 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 // ⭐ FIX FOR RENDER TIMEOUT ⭐
 // ⭐ FIX FOR RENDER TIMEOUT (Using Port 587 STARTTLS) ⭐
+// ⭐ FIX FOR RENDER IPv6 NETWORK BUG ⭐
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // Port 587 ke liye hamesha false hota hai (yeh STARTTLS use karega)
-    requireTLS: true, // Server ko force karega secure connection banane ke liye
+    port: 465,
+    secure: true, 
     auth: {
         user: process.env.GMAIL_EMAIL,
         pass: process.env.GMAIL_APP_PASSWORD
     },
     tls: {
         rejectUnauthorized: false
-    }
+    },
+    // 👇 YEH HAI WOH MAGIC LINE JO RENDER PAR TIMEOUT ROKTI HAI 👇
+    family: 4 
 });
 const app = express();
 const PORT = process.env.PORT || 3000;
