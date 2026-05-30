@@ -209,24 +209,36 @@ async function loadCurrentFolder() {
         }
     }
 }
+// ⚡ SCROLL LOADING ENGINE (20 Photos Limit)
 async function loadMoreItems() {
-    // CRITICAL TRASH BYPASS: Agar view drive nahi hai, toh scroll pagination kaam nahi karega
-    if (currentView !== 'drive') return;
+    if (currentView !== 'drive' && currentView !== 'photos') return;
     
     if (isLoading || !hasMore) return;
     isLoading = true;
     
     try {
-        const token = localStorage.getItem('td_token');
-        const res = await fetch(`/files?folderId=${currentFolderId}&page=${currentPage + 1}&limit=100`, { headers: token ? getHeaders() : {} });
+        const skipAmount = allFiles.length; 
+        let url = '';
+        
+        // 👈 Drive aur Photos dono ke liye limit 20 kar di
+        if (currentView === 'drive') {
+            url = `/files?folderId=${currentFolderId}&skip=${skipAmount}&limit=20`;
+        } else if (currentView === 'photos') {
+            url = `/api/photos?skip=${skipAmount}&limit=20`;
+        }
+
+        const res = await fetch(url, { headers: getHeaders() });
         const newFiles = await res.json();
         
-        if (newFiles.length < 100) hasMore = false;
+        // 👈 Scroll rokne ki condition ko bhi 20 kar diya
+        if (newFiles.length < 20) hasMore = false; 
+        
         allFiles = [...allFiles, ...newFiles];
         
-        renderItems([], newFiles, false); 
-        currentPage++;
-    } catch(e) { console.error(e); }
+        renderItems(currentView === 'drive' ? foldersData : [], allFiles, false); 
+    } catch(e) { 
+        console.error("Scroll Load Error:", e); 
+    }
     isLoading = false;
 }
 async function loadTrash() {
