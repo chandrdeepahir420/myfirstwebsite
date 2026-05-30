@@ -327,41 +327,46 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 /* 📸 GOOGLE PHOTOS PREMIUM GRID STYLE */
-/* 📸 GOOGLE PHOTOS PREMIUM FLEX STYLE (PC & MOBILE) */
+/* 📸 REAL GOOGLE PHOTOS LAYOUT (Original Shapes) */
 .photo-grid {
     display: flex !important;
     flex-wrap: wrap !important;
-    gap: 3px !important;
-    padding: 3px !important;
+    gap: 4px !important;
+    padding: 4px !important;
 }
 
 .photo-grid .file-card {
-    flex: auto !important; /* Yeh photo ko apni asli width lene dega */
-    height: 180px !important; /* PC ke liye fixed height */
-    min-width: 120px !important; 
-    border-radius: 0 !important; 
-    padding: 0 !important;
+    height: 200px !important; /* PC ke liye base height */
+    flex-grow: 1 !important; /* Row mein jagah bachegi toh photo thodi stretch hogi */
     background: transparent !important;
     border: none !important;
+    padding: 0 !important;
     margin: 0 !important;
+    overflow: hidden !important;
+}
+
+/* 🚀 Aakhiri row ko poori screen par failne se rokne ka hack */
+.photo-grid::after {
+    content: '';
+    flex-grow: 999;
 }
 
 .photo-grid .ios-item-icon {
-    width: 100% !important;
     height: 100% !important;
+    width: 100% !important;
     border-radius: 0 !important;
-    background: #1e1e2a !important; /* Green box hatakar Premium Dark Grey box */
-    transition: transform 0.2s ease;
+    background: #1e1e2a !important; /* Premium Dark Background */
 }
 
-/* Image asli frame mein set hogi */
+/* ⭐ THE MAGIC LINE: Photo apne asli shape (Landscape/Portrait) mein aayegi */
 .photo-grid .ios-item-icon img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important; 
+    height: 200px !important;
+    width: auto !important; /* Width image khud apni ratio se legi */
+    min-width: 100% !important; /* Container bada ho toh stretch hone par kate na */
+    object-fit: cover !important;
 }
 
-/* Text aur Menu hide karein */
+/* Labels aur menu hide karo */
 .photo-grid .item-details,
 .photo-grid .three-dot-btn {
     display: none !important; 
@@ -376,22 +381,27 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
     height: 22px;
     border-radius: 50%;
     z-index: 10;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5); /* Tick ko shadow dekar popup effect */
 }
 
+/* Sirf Hover ya Select hone par dikhega */
 .photo-grid .file-card:hover .select-check,
 .photo-grid .file-card.selected .select-check {
     display: flex !important;
 }
 
+/* Select hone par Google Photos jaisa shrink animation */
 .photo-grid .file-card.selected .ios-item-icon {
     transform: scale(0.85);
     border-radius: 8px !important;
 }
 
-/* 📱 MOBILE RESPONSIVENESS (Phone par choti screen hoti hai toh height kam karni padegi) */
+/* 📱 MOBILE SCREEN ADJUSTMENT */
 @media (max-width: 768px) {
     .photo-grid .file-card {
-        height: 100px !important; /* Phone ke liye height */
-        min-width: 80px !important;
+        height: 120px !important;
+    }
+    .photo-grid .ios-item-icon img {
+        height: 120px !important;
     }
 }
