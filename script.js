@@ -608,7 +608,8 @@ function renderItems(folders, files, isTrash) {
 
     // CRITICAL FIX 1: Jab bhi ye function chale, sabse pehle purana saara content screen se saaf karo!
     listEl.innerHTML = '';
-    listEl.className = `file-grid${isGridView ? '' : ' list-view'}`; 
+    // Agar view 'photos' hai toh photo-grid design lagao, warna normal drive design
+    listEl.className = `file-grid${isGridView ? '' : ' list-view'} ${currentView === 'photos' ? 'photo-grid' : ''}`;
     
     // CRITICAL FIX 2: Agar folders aur files dono hi empty hain (Empty Folder Case)
     if (!folders.length && !files.length) { 
@@ -1718,7 +1719,7 @@ async function loadPhotosView() {
     foldersData = [];
 
     isGridView = true; 
-    listEl.className = 'file-grid';
+    listEl.className = 'file-grid photo-grid'; // 👈 Nayi class add ki
     listEl.innerHTML = `<div style="width: 100%; text-align: center; padding: 50px;"><i class="fa-solid fa-circle-notch fa-spin text-3xl"></i></div>`;
 
     try {
