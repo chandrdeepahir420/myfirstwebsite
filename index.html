@@ -172,7 +172,10 @@
 
     <div class="file-area">
       <div class="empty-state" id="emptyState" style="display:none"><i id="emptyIcon" class="fa-solid fa-folder-open text-5xl"></i><p id="emptyTitle">Empty Folder</p></div>
-      <div class="file-grid list-view" id="fileList"></div>
+      <div id="photosContainer">
+    <p class="photo-date-label" id="todayLabel" style="display:none">Today</p>
+    <div class="file-grid list-view photo-grid" id="fileList"></div>
+</div>
     </div>
 
     <div id="settingsArea" style="display:none; max-width:400px; width:100%; margin:20px auto; background:var(--surface2); padding:24px; border-radius:16px; border:1px solid var(--border);">
