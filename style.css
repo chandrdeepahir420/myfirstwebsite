@@ -327,42 +327,55 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 /* 📸 GOOGLE PHOTOS PREMIUM GRID STYLE */
+/* 📸 GOOGLE PHOTOS PREMIUM FLEX STYLE (PC & MOBILE) */
 .photo-grid {
-    gap: 3px !important; 
-    padding: 2px !important;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; 
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 3px !important;
+    padding: 3px !important;
 }
 
 .photo-grid .file-card {
-    aspect-ratio: 1 / 1 !important; 
+    flex: auto !important; /* Yeh photo ko apni asli width lene dega */
+    height: 180px !important; /* PC ke liye fixed height */
+    min-width: 120px !important; 
     border-radius: 0 !important; 
     padding: 0 !important;
     background: transparent !important;
     border: none !important;
-    overflow: hidden;
+    margin: 0 !important;
 }
 
 .photo-grid .ios-item-icon {
     width: 100% !important;
     height: 100% !important;
     border-radius: 0 !important;
+    background: #1e1e2a !important; /* Green box hatakar Premium Dark Grey box */
     transition: transform 0.2s ease;
 }
 
+/* Image asli frame mein set hogi */
+.photo-grid .ios-item-icon img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important; 
+}
+
+/* Text aur Menu hide karein */
 .photo-grid .item-details,
 .photo-grid .three-dot-btn {
     display: none !important; 
 }
 
-/* ✅ SELECT BUTTON (TICK) LOGIC */
+/* ✅ SELECT BUTTON (TICK) */
 .photo-grid .select-check {
     display: none !important; 
-    top: 6px;
-    left: 6px;
-    width: 20px;
-    height: 20px;
+    top: 8px;
+    left: 8px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    font-size: 0.7rem;
+    z-index: 10;
 }
 
 .photo-grid .file-card:hover .select-check,
@@ -373,4 +386,12 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
 .photo-grid .file-card.selected .ios-item-icon {
     transform: scale(0.85);
     border-radius: 8px !important;
+}
+
+/* 📱 MOBILE RESPONSIVENESS (Phone par choti screen hoti hai toh height kam karni padegi) */
+@media (max-width: 768px) {
+    .photo-grid .file-card {
+        height: 100px !important; /* Phone ke liye height */
+        min-width: 80px !important;
+    }
 }
