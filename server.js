@@ -262,7 +262,22 @@ app.get('/files', checkAuth, async (req, res) => {
         res.status(500).json([]); 
     }
 });
-
+// ==========================================
+// 📸 GOOGLE PHOTOS STYLE API (Only Images)
+// ==========================================
+app.get('/api/photos', checkAuth, async (req, res) => {
+    try {
+        // Sirf un files ko dhoondho jinke naam ke aage .jpg, .png, .jpeg aadi laga ho
+        const photos = await FileModel.find({
+            isTrashed: { $ne: true },
+            name: { $regex: /\.(jpg|jpeg|png|gif|webp)$/i }
+        }).sort({ uploadedAt: -1 }); // Sabse nayi photo sabse upar
+        
+        res.json(photos);
+    } catch (e) { 
+        res.status(500).json([]); 
+    }
+});
 app.get('/folders', checkAuth, async (req, res) => {
     try {
         const parentId = req.query.parentId || 'root';
