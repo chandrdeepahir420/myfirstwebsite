@@ -326,45 +326,50 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-/* 📸 GOOGLE PHOTOS PREMIUM GRID STYLE */
 /* 📸 REAL GOOGLE PHOTOS LAYOUT (Original Shapes) */
 /* 📸 THE BULLETPROOF PHOTO GRID (Uniform Square/Rectangles) */
+/* 📸 THE PERFECT SQUARE GALLERY (Apple/Google Photos Style) */
 .photo-grid {
     display: grid !important;
-    /* Yeh magic line automatically screen ke hisaab se columns banayegi */
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important; 
     gap: 4px !important;
     padding: 4px !important;
-    width: 100% !important;
+    align-items: start !important; 
 }
 
+/* Yahan File Card ko zabardasti Square banaya hai */
 .photo-grid .file-card {
-    height: 160px !important; /* Fixed uniform height */
     width: 100% !important;
+    aspect-ratio: 1 / 1 !important; /* 👈 YEH HAI MAGIC: 100% Perfect Square */
+    height: auto !important; 
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
-    background: transparent !important;
-    display: block !important;
-    position: relative !important;
+    background: #1e1e2a !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
+    display: block !important; /* Purane CSS ka flexbox band kar diya */
 }
 
 .photo-grid .ios-item-icon {
     width: 100% !important;
     height: 100% !important;
-    border-radius: 4px !important; /* Halka sa premium curve */
-    background: #1e1e2a !important; 
-    overflow: hidden !important;
-    transition: transform 0.2s ease;
+    background: transparent !important;
+    border-radius: 0 !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 .photo-grid .ios-item-icon img {
     width: 100% !important;
     height: 100% !important;
-    object-fit: cover !important; /* ⭐ Yeh photo ko shape mein rakhega aur dabne nahi dega */
+    object-fit: cover !important; /* Square ke andar photo ko smart crop karega */
+    display: block !important;
+    transition: transform 0.2s ease, border-radius 0.2s ease !important;
 }
 
-/* ❌ Text aur Menu hide karo */
+/* ❌ Text aur Menu chhupao */
 .photo-grid .item-details,
 .photo-grid .three-dot-btn {
     display: none !important; 
@@ -382,23 +387,23 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
-/* Hover ya Select hone par dikhega */
+/* Sirf Hover ya Select hone par Tick dikhega */
 .photo-grid .file-card:hover .select-check,
 .photo-grid .file-card.selected .select-check {
     display: flex !important;
 }
 
-.photo-grid .file-card.selected .ios-item-icon {
-    transform: scale(0.9);
+/* Select hone par photo choti (shrink) hogi */
+.photo-grid .file-card.selected img {
+    transform: scale(0.85) !important;
     border-radius: 8px !important;
 }
 
-/* 📱 MOBILE SCREEN ADJUSTMENT */
+/* 📱 MOBILE VIEW */
 @media (max-width: 768px) {
     .photo-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
-    }
-    .photo-grid .file-card {
-        height: 100px !important;
+        grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)) !important;
+        gap: 2px !important;
+        padding: 2px !important;
     }
 }
