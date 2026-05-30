@@ -326,3 +326,51 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+/* 📸 GOOGLE PHOTOS PREMIUM GRID STYLE */
+.photo-grid {
+    gap: 3px !important; 
+    padding: 2px !important;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; 
+}
+
+.photo-grid .file-card {
+    aspect-ratio: 1 / 1 !important; 
+    border-radius: 0 !important; 
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    overflow: hidden;
+}
+
+.photo-grid .ios-item-icon {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    transition: transform 0.2s ease;
+}
+
+.photo-grid .item-details,
+.photo-grid .three-dot-btn {
+    display: none !important; 
+}
+
+/* ✅ SELECT BUTTON (TICK) LOGIC */
+.photo-grid .select-check {
+    display: none !important; 
+    top: 6px;
+    left: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+}
+
+.photo-grid .file-card:hover .select-check,
+.photo-grid .file-card.selected .select-check {
+    display: flex !important;
+}
+
+.photo-grid .file-card.selected .ios-item-icon {
+    transform: scale(0.85);
+    border-radius: 8px !important;
+}
