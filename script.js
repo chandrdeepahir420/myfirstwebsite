@@ -680,8 +680,7 @@ function renderItems(folders, files, isTrash) {
         let mediaContent = `<i class="fa-solid ${style.icon}"></i>`; 
         
         if (images.includes(ext)) {
-            // ⭐ CRITICAL FIX: onerror event add kiya gaya hai
-            mediaContent = `<img src="/download/${f._id}?token=${token}" loading="lazy" alt="thumbnail" style="width:100%; height:100%; object-fit:cover;" onerror="handleThumbError(this, false)">`;
+            mediaContent = `<img src="/download/${f._id}?token=${token}" alt="thumbnail" style="width:100%; height:100%; object-fit:cover;" onerror="handleThumbError(this, false)">`;
         }
         d.innerHTML = `
             <div class="select-check">✓</div>
