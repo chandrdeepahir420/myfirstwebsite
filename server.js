@@ -9,16 +9,18 @@ const path = require('path');
 // ⭐ Naya Email Setup ⭐
 const nodemailer = require('nodemailer');
 // ⭐ FIX FOR RENDER TIMEOUT ⭐
+// ⭐ FIX FOR RENDER TIMEOUT (Using Port 587 STARTTLS) ⭐
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // Use strict SSL
+    port: 587,
+    secure: false, // Port 587 ke liye hamesha false hota hai (yeh STARTTLS use karega)
+    requireTLS: true, // Server ko force karega secure connection banane ke liye
     auth: {
         user: process.env.GMAIL_EMAIL,
         pass: process.env.GMAIL_APP_PASSWORD
     },
     tls: {
-        rejectUnauthorized: false // Yeh kisi bhi cloud network block ko bypass kar dega
+        rejectUnauthorized: false
     }
 });
 const app = express();
