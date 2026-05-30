@@ -265,13 +265,21 @@ app.get('/files', checkAuth, async (req, res) => {
 // ==========================================
 // 📸 GOOGLE PHOTOS STYLE API (Only Images)
 // ==========================================
+// ==========================================
+// 📸 GOOGLE PHOTOS STYLE API (20 Photos Limit)
+// ==========================================
 app.get('/api/photos', checkAuth, async (req, res) => {
     try {
-        // Sirf un files ko dhoondho jinke naam ke aage .jpg, .png, .jpeg aadi laga ho
+        const skip = parseInt(req.query.skip) || 0;
+        const limit = parseInt(req.query.limit) || 20; // 👈 50 ki jagah 20 kar diya
+
         const photos = await FileModel.find({
             isTrashed: { $ne: true },
             name: { $regex: /\.(jpg|jpeg|png|gif|webp)$/i }
-        }).sort({ uploadedAt: -1 }); // Sabse nayi photo sabse upar
+        })
+        .sort({ uploadedAt: -1 }) 
+        .skip(skip)
+        .limit(limit);
         
         res.json(photos);
     } catch (e) { 
