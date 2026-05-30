@@ -75,13 +75,6 @@ const checkAuth = (req, res, next) => {
 
 // ==========================================
 // AUTH & SETTINGS ROUTES
-// ==========================================
-// ==========================================
-// AUTH & SETTINGS ROUTES
-// ==========================================
-// ==========================================
-// AUTH & SETTINGS ROUTES
-// ==========================================
 app.post('/request-otp', async (req, res) => {
     try {
         const admin = await getAdmin();
@@ -91,18 +84,34 @@ app.post('/request-otp', async (req, res) => {
         await OTPModel.deleteMany({}); 
         await OTPModel.create({ code });
 
-        // 1. Telegram par bhejo
+        // 1. Telegram
         axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { chat_id: process.env.TELEGRAM_CHAT_ID, text: `🔐 OTP: *${code}*`, parse_mode: 'Markdown' }).catch(e => console.log('TG Error'));
 
-        // 2. Email par bhejo (Using Resend API)
+        // ==========================================
+        // 🕵️ DEBUGGING BLOCK (Asli problem yahan pakdi jayegi)
+        // ==========================================
+        console.log("--- OTP REQUEST START ---");
+        console.log("Resend Key set hai?:", !!process.env.RESEND_API_KEY);
+        console.log("Admin Email kya hai?:", process.env.ADMIN_EMAIL);
+
         if (process.env.RESEND_API_KEY && process.env.ADMIN_EMAIL) {
-            resend.emails.send({
-                from: 'onboarding@resend.dev', 
-                to: process.env.ADMIN_EMAIL,   
-                subject: 'TeleDrive Login OTP',
-                html: `<h3>TeleDrive Security</h3><p>Your login OTP is:</p><h1 style="color: #34c759; letter-spacing: 5px;">${code}</h1>`
-            }).catch(e => console.log('🚨 Resend Error:', e.message));
+            console.log("Email bhejna shuru kar raha hoon...");
+            try {
+                // Yahan await lagaya hai taaki Render request jaldi close na kare
+                await resend.emails.send({
+                    from: 'onboarding@resend.dev', 
+                    to: process.env.ADMIN_EMAIL,   
+                    subject: 'TeleDrive Login OTP',
+                    html: `<h3>TeleDrive Security</h3><p>Your login OTP is:</p><h1 style="color: #34c759; letter-spacing: 5px;">${code}</h1>`
+                });
+                console.log("✅ Email successfully bhej diya gaya!");
+            } catch (err) {
+                console.log('🚨 RESEND ERROR:', err.message);
+            }
+        } else {
+            console.log("❌ CHUT GAYA: Render mein RESEND_API_KEY ya ADMIN_EMAIL missing hai!");
         }
+        console.log("-------------------------");
 
         res.json({ success: true, message: "OTP Sent!" });
     } catch (e) { 
