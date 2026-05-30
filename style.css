@@ -328,26 +328,25 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 /* 📸 REAL GOOGLE PHOTOS LAYOUT (Original Shapes) */
 /* ===== GOOGLE PHOTOS STYLE GRID ===== */
+/* ===== GOOGLE PHOTOS STYLE GRID ===== */
 .photo-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 2px;          /* Google Photos uses 2px, not 4px */
-    padding: 0;        /* No padding on the grid itself */
+    gap: 2px;
+    padding: 0;
     margin-bottom: 20px;
 }
-
 .photo-grid .file-card {
     aspect-ratio: 1 / 1;
     overflow: hidden;
     position: relative;
     cursor: pointer;
-    background: #303134;  /* Dark placeholder for non-image cards */
+    background: #303134;
     border: none;
-    border-radius: 0;     /* No radius — tiles are flush */
+    border-radius: 0;
     margin: 0;
     padding: 0;
 }
-
 .photo-grid .file-card img {
     width: 100%;
     height: 100%;
@@ -355,18 +354,11 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
     display: block;
     transition: transform 0.2s ease;
 }
-
-.photo-grid .file-card:hover img {
-    transform: scale(1.03);
-}
-
-/* Selection shrink on click */
+.photo-grid .file-card:hover img { transform: scale(1.03); }
 .photo-grid .file-card.selected img {
     transform: scale(0.88);
     border-radius: 6px;
 }
-
-/* Tick button */
 .photo-grid .select-check {
     position: absolute;
     top: 6px;
@@ -374,7 +366,7 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0,0,0,0.4);
     border: 2px solid #fff;
     display: flex;
     align-items: center;
@@ -383,33 +375,23 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
     transition: opacity 0.15s;
     z-index: 10;
 }
-
 .photo-grid .file-card:hover .select-check,
-.photo-grid .file-card.selected .select-check {
-    opacity: 1;
-}
-
+.photo-grid .file-card.selected .select-check { opacity: 1; }
 .photo-grid .file-card.selected .select-check {
     background: #8ab4f8;
     border-color: #8ab4f8;
 }
-
-/* Hide text/menu */
 .photo-grid .item-details,
-.photo-grid .three-dot-btn {
-    display: none;
+.photo-grid .three-dot-btn { display: none; }
+.photo-date-label {
+    font-size: 14px;
+    color: #9aa0a6;
+    padding: 10px 4px 4px;
+    font-weight: 500;
 }
-
-/* Mobile */
 @media (max-width: 600px) {
     .photo-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 1px;
     }
-}
-.photo-date-label {
-    font-size: 14px;
-    color: #9aa0a6;
-    padding: 8px 4px 4px;
-    letter-spacing: 0.3px;
 }
