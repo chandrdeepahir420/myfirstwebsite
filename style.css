@@ -327,83 +327,89 @@ body.is-selecting, body.is-selecting * { user-select: none !important; -webkit-u
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 /* 📸 REAL GOOGLE PHOTOS LAYOUT (Original Shapes) */
-/* 📸 THE BULLETPROOF PHOTO GRID (Uniform Square/Rectangles) */
-/* 📸 THE PERFECT SQUARE GALLERY (Apple/Google Photos Style) */
+/* ===== GOOGLE PHOTOS STYLE GRID ===== */
 .photo-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important; 
-    gap: 4px !important;
-    padding: 4px !important;
-    align-items: start !important; 
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 2px;          /* Google Photos uses 2px, not 4px */
+    padding: 0;        /* No padding on the grid itself */
+    margin-bottom: 20px;
 }
 
-/* Yahan File Card ko zabardasti Square banaya hai */
 .photo-grid .file-card {
-    width: 100% !important;
-    aspect-ratio: 1 / 1 !important; /* 👈 YEH HAI MAGIC: 100% Perfect Square */
-    height: auto !important; 
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    background: #1e1e2a !important;
-    border-radius: 4px !important;
-    overflow: hidden !important;
-    display: block !important; /* Purane CSS ka flexbox band kar diya */
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    background: #303134;  /* Dark placeholder for non-image cards */
+    border: none;
+    border-radius: 0;     /* No radius — tiles are flush */
+    margin: 0;
+    padding: 0;
 }
 
-.photo-grid .ios-item-icon {
-    width: 100% !important;
-    height: 100% !important;
-    background: transparent !important;
-    border-radius: 0 !important;
-    display: block !important;
-    padding: 0 !important;
-    margin: 0 !important;
+.photo-grid .file-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.2s ease;
 }
 
-.photo-grid .ios-item-icon img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important; /* Square ke andar photo ko smart crop karega */
-    display: block !important;
-    transition: transform 0.2s ease, border-radius 0.2s ease !important;
+.photo-grid .file-card:hover img {
+    transform: scale(1.03);
 }
 
-/* ❌ Text aur Menu chhupao */
-.photo-grid .item-details,
-.photo-grid .three-dot-btn {
-    display: none !important; 
+/* Selection shrink on click */
+.photo-grid .file-card.selected img {
+    transform: scale(0.88);
+    border-radius: 6px;
 }
 
-/* ✅ SELECT BUTTON (TICK) */
+/* Tick button */
 .photo-grid .select-check {
-    display: none !important; 
-    top: 8px;
-    left: 8px;
+    position: absolute;
+    top: 6px;
+    left: 6px;
     width: 22px;
     height: 22px;
     border-radius: 50%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
     z-index: 10;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
-/* Sirf Hover ya Select hone par Tick dikhega */
 .photo-grid .file-card:hover .select-check,
 .photo-grid .file-card.selected .select-check {
-    display: flex !important;
+    opacity: 1;
 }
 
-/* Select hone par photo choti (shrink) hogi */
-.photo-grid .file-card.selected img {
-    transform: scale(0.85) !important;
-    border-radius: 8px !important;
+.photo-grid .file-card.selected .select-check {
+    background: #8ab4f8;
+    border-color: #8ab4f8;
 }
 
-/* 📱 MOBILE VIEW */
-@media (max-width: 768px) {
+/* Hide text/menu */
+.photo-grid .item-details,
+.photo-grid .three-dot-btn {
+    display: none;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
     .photo-grid {
-        grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)) !important;
-        gap: 2px !important;
-        padding: 2px !important;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
     }
+}
+.photo-date-label {
+    font-size: 14px;
+    color: #9aa0a6;
+    padding: 8px 4px 4px;
+    letter-spacing: 0.3px;
 }
