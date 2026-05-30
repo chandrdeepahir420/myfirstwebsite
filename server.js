@@ -6,25 +6,10 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-// ⭐ Naya Email Setup ⭐
-const nodemailer = require('nodemailer');
-// ⭐ FIX FOR RENDER TIMEOUT ⭐
-// ⭐ FIX FOR RENDER TIMEOUT (Using Port 587 STARTTLS) ⭐
-// ⭐ FIX FOR RENDER IPv6 NETWORK BUG ⭐
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, 
-    auth: {
-        user: process.env.GMAIL_EMAIL,
-        pass: process.env.GMAIL_APP_PASSWORD
-    },
-    tls: {
-        rejectUnauthorized: false
-    },
-    // 👇 YEH HAI WOH MAGIC LINE JO RENDER PAR TIMEOUT ROKTI HAI 👇
-    family: 4 
-});
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-teledrive-key-2026';
@@ -94,6 +79,9 @@ const checkAuth = (req, res, next) => {
 // ==========================================
 // AUTH & SETTINGS ROUTES
 // ==========================================
+// ==========================================
+// AUTH & SETTINGS ROUTES
+// ==========================================
 app.post('/request-otp', async (req, res) => {
     try {
         const admin = await getAdmin();
@@ -103,21 +91,19 @@ app.post('/request-otp', async (req, res) => {
         await OTPModel.deleteMany({}); 
         await OTPModel.create({ code });
 
-        // 1. Telegram par bhejo (Background mein)
+        // 1. Telegram par bhejo
         axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { chat_id: process.env.TELEGRAM_CHAT_ID, text: `🔐 OTP: *${code}*`, parse_mode: 'Markdown' }).catch(e => console.log('TG Error'));
 
-        // 2. Email par bhejo (Background mein)
-        if (process.env.GMAIL_EMAIL) {
-            const mailOptions = {
-                from: `"TeleDrive Security" <${process.env.GMAIL_EMAIL}>`,
-                to: process.env.GMAIL_EMAIL, // Aapke hi email par aayega
-                subject: "TeleDrive Login OTP",
+        // 2. Email par bhejo (Using Resend API)
+        if (process.env.RESEND_API_KEY && process.env.ADMIN_EMAIL) {
+            resend.emails.send({
+                from: 'onboarding@resend.dev', 
+                to: process.env.ADMIN_EMAIL,   
+                subject: 'TeleDrive Login OTP',
                 html: `<h3>TeleDrive Security</h3><p>Your login OTP is:</p><h1 style="color: #34c759; letter-spacing: 5px;">${code}</h1>`
-            };
-            transporter.sendMail(mailOptions).catch(e => console.log('🚨 EMAIL ERROR DETAILS:', e.message));
+            }).catch(e => console.log('🚨 Resend Error:', e.message));
         }
 
-        // Frontend ko turant aage badhao (App nahi atkegi)
         res.json({ success: true, message: "OTP Sent!" });
     } catch (e) { 
         res.status(500).json({ success: false }); 
