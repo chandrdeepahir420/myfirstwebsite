@@ -118,10 +118,23 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header"><div class="sidebar-logo"><i class="fa-solid fa-shield-halved text-blue-500"></i><span>TeleDrive</span></div><button class="menu-close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button></div>
     <nav class="sidebar-nav">
-      <a class="nav-item active" id="navDrive" onclick="switchView('drive')"><i class="fa-solid fa-house"></i> My Drive</a>
-      <a class="nav-item" onclick="toggleSearchRow()"><i class="fa-solid fa-magnifying-glass"></i> Search Files</a>
-      <a class="nav-item text-red-400" id="navTrash" onclick="switchView('trash')"><i class="fa-solid fa-trash-can"></i> Trash Bin</a>
-      <a class="nav-item" id="navSettings" onclick="switchView('settings')"><i class="fa-solid fa-gear"></i> Settings</a>
+      <a class="nav-item active" id="navPhotos" onclick="switchView('photos')">
+          <i class="fa-solid fa-image text-blue-400"></i> Photos
+      </a>
+      
+      <a class="nav-item" id="navDrive" onclick="switchView('drive')">
+          <i class="fa-solid fa-folder-tree text-amber-400"></i> Files & Folders
+      </a>
+      
+      <a class="nav-item" onclick="toggleSearchRow()">
+          <i class="fa-solid fa-magnifying-glass"></i> Search
+      </a>
+      <a class="nav-item text-red-400" id="navTrash" onclick="switchView('trash')">
+          <i class="fa-solid fa-trash-can"></i> Trash Bin
+      </a>
+      <a class="nav-item" id="navSettings" onclick="switchView('settings')">
+          <i class="fa-solid fa-gear"></i> Settings
+      </a>
     </nav>
     <button class="btn-primary" onclick="document.getElementById('securitySetupModal').style.display='flex'" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 15px; background: var(--surface2); color: var(--text);">
     <i class="fa-solid fa-face-viewfinder"></i> Turn On Face ID
