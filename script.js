@@ -489,9 +489,10 @@ function showDrive() {
     hideLoader(); 
     document.getElementById('loginScreen').style.display = 'none'; 
     document.getElementById('driveContent').style.display = 'flex'; 
-    switchView('drive'); 
     
-    // ⭐ NAYA UPDATE: OTP login ke baad Security Setup Popup trigger karne ke liye
+    // ⭐ App khulte hi ab Photos tab khulega
+    switchView('photos'); 
+    
     checkAndPromptSecurity(); 
 }
 function switchView(view) {
@@ -500,10 +501,11 @@ function switchView(view) {
     
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('settingsArea').style.display = view === 'settings' ? 'block' : 'none';
-    document.getElementById('mainToolbar').style.display = view === 'drive' ? 'flex' : 'none';
+    
+    // Sirf 'drive' aur 'photos' mein toolbar/upload button dikhega
+    document.getElementById('mainToolbar').style.display = (view === 'drive' || view === 'photos') ? 'flex' : 'none';
     document.getElementById('fileList').style.display = view === 'settings' ? 'none' : 'grid';
     
-    // Reset list layout container html before loading view
     const listEl = document.getElementById('fileList');
     if (listEl) listEl.innerHTML = ''; 
 
@@ -511,14 +513,15 @@ function switchView(view) {
         document.getElementById('navDrive').classList.add('active'); 
         navigateTo('root', 'My Drive'); 
     } 
+    else if (view === 'photos') {
+        document.getElementById('navPhotos').classList.add('active'); 
+        document.getElementById('breadcrumb').innerText = "All Photos"; 
+        loadPhotosView(); // 📸 Hamaara naya function
+    }
     else if (view === 'trash') { 
         document.getElementById('navTrash').classList.add('active'); 
         document.getElementById('breadcrumb').innerText = "Trash Bin";
-        
-        // Trash ke liye pagination bypass indicators
-        currentPage = 1;
-        hasMore = false; // Isse background scroll load ruk jayega trash view mein
-        
+        currentPage = 1; hasMore = false; 
         loadTrash(); 
     } 
     else if (view === 'settings') { 
@@ -1688,3 +1691,49 @@ window.addEventListener('DOMContentLoaded', () => {
         if (lockScreen) lockScreen.style.display = 'none';
     }
 });
+// ==========================================
+// 📸 GOOGLE PHOTOS VIEW ENGINE
+// ==========================================
+async function loadPhotosView() {
+    const listEl = document.getElementById('fileList');
+    const emptyEl = document.getElementById('emptyState');
+    
+    // Pagination aur Scroll loading band karo
+    currentPage = 1; hasMore = false; 
+    
+    // Grid Setup
+    isGridView = true; // Hamesha Grid mein dikhega
+    listEl.className = 'file-grid';
+    listEl.innerHTML = `
+        <div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: var(--accent);">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; margin-bottom: 15px;"></i>
+        </div>`;
+
+    try {
+        const headers = getHeaders();
+        // Naye API endpoint se sirf photos mangwao
+        const res = await fetch('/api/photos', { headers, cache: 'no-store' });
+        const photosData = await res.json();
+        
+        allFiles = photosData; // Global data update
+        foldersData = []; // Photos view mein koi folder nahi hoga
+
+        // Agar ek bhi photo nahi hai
+        if (!photosData || photosData.length === 0) {
+            listEl.innerHTML = '';
+            if (emptyEl) {
+                emptyEl.style.display = 'flex';
+                document.getElementById('emptyIcon').className = 'fa-solid fa-images text-5xl text-blue-400';
+                document.getElementById('emptyTitle').innerText = 'No Photos Backed Up';
+            }
+            return;
+        }
+
+        // Render using existing engine (folders = [], files = photosData)
+        renderItems([], photosData, false);
+
+    } catch (e) {
+        console.error("Photos Load Error:", e);
+        listEl.innerHTML = `<div style="text-align: center; padding: 50px; color: var(--danger);">Failed to load photos.</div>`;
+    }
+}
